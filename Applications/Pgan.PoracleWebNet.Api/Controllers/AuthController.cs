@@ -1141,59 +1141,79 @@ public partial class AuthController(
                 return "role_check_failed";
             }
 
-            // Need bot token and guild ID to check roles
-            if (string.IsNullOrEmpty(this._discordSettings.BotToken) || string.IsNullOrEmpty(this._discordSettings.GuildId))
+            // Need bot token and at least one guild ID to check roles
+            var guildIds = ParseGuildIds(this._discordSettings.GuildId);
+            if (string.IsNullOrEmpty(this._discordSettings.BotToken) || guildIds.Count == 0)
             {
                 LogRoleMisconfigured(this._logger);
                 return null; // Misconfigured, fail open
             }
 
-            // Fetch user's guild member data via bot API
+            // Fetch the user's member data in each configured guild via the bot API. One allowed role
+            // in any of the guilds is enough, so stop at the first guild that grants access.
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bot", this._discordSettings.BotToken);
 
-            var response = await httpClient.GetAsync(
-                $"https://discordapp.com/api/guilds/{this._discordSettings.GuildId}/members/{discordId}");
-
-            if (!response.IsSuccessStatusCode)
+            var inAnyGuild = false;
+            var anyLookupFailed = false;
+            foreach (var guildId in guildIds)
             {
-                var errorBody = await response.Content.ReadAsStringAsync();
-                LogGuildMemberFetchFailed(this._logger, LogSafe.Id(discordId), response.StatusCode, errorBody);
-                // 404 = not in guild, 403 = bot doesn't have access
-                return response.StatusCode == System.Net.HttpStatusCode.NotFound
-                    ? "not_in_guild"
-                    : "role_check_failed";
-            }
+                var response = await httpClient.GetAsync(
+                    $"https://discordapp.com/api/guilds/{guildId}/members/{discordId}");
 
-            var memberJson = await response.Content.ReadFromJsonAsync<JsonElement>();
-            var userRoles = new HashSet<string>();
-            if (memberJson.TryGetProperty("roles", out var rolesArray) &&
-                rolesArray.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var role in rolesArray.EnumerateArray())
+                if (!response.IsSuccessStatusCode)
                 {
-                    if (role.GetString() is { } roleId)
+                    var errorBody = await response.Content.ReadAsStringAsync();
+                    // 404 = not in this guild, which is routine when several are listed; 403 = bot doesn't have access
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     {
-                        userRoles.Add(roleId);
+                        LogGuildMemberNotFound(this._logger, LogSafe.Id(discordId), guildId, errorBody);
                     }
+                    else
+                    {
+                        LogGuildMemberFetchFailed(this._logger, LogSafe.Id(discordId), guildId, response.StatusCode, errorBody);
+                        anyLookupFailed = true;
+                    }
+
+                    continue;
+                }
+
+                inAnyGuild = true;
+                var memberJson = await response.Content.ReadFromJsonAsync<JsonElement>();
+                var userRoles = new HashSet<string>();
+                if (memberJson.TryGetProperty("roles", out var rolesArray) &&
+                    rolesArray.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var role in rolesArray.EnumerateArray())
+                    {
+                        if (role.GetString() is { } roleId)
+                        {
+                            userRoles.Add(roleId);
+                        }
+                    }
+                }
+
+                if (this._logger.IsEnabled(LogLevel.Information))
+                {
+#pragma warning disable CA1873 // args are only evaluated inside IsEnabled guard
+                    LogRoleCheck(this._logger, LogSafe.Id(discordId), guildId, string.Join(", ", allowedRoles), string.Join(", ", userRoles));
+#pragma warning restore CA1873
+                }
+
+                if (HasAllowedRole(allowedRoles, userRoles))
+                {
+                    return null;
                 }
             }
 
-            if (this._logger.IsEnabled(LogLevel.Information))
+            var denial = GuildRoleCheckDenial(inAnyGuild, anyLookupFailed);
+            if (denial == "missing_required_role")
             {
-#pragma warning disable CA1873 // args are only evaluated inside IsEnabled guard
-                LogRoleCheck(this._logger, LogSafe.Id(discordId), string.Join(", ", allowedRoles), string.Join(", ", userRoles));
-#pragma warning restore CA1873
+                LogRoleDenied(this._logger, LogSafe.Id(discordId));
             }
 
-            if (HasAllowedRole(allowedRoles, userRoles))
-            {
-                return null;
-            }
-
-            LogRoleDenied(this._logger, LogSafe.Id(discordId));
-            return "missing_required_role";
+            return denial;
         }
         catch (Exception ex)
         {
@@ -1240,6 +1260,43 @@ public partial class AuthController(
 
         return (roleIds, invalidEntries);
     }
+
+    /// <summary>
+    /// Parses <c>Discord:GuildId</c> into the guilds whose roles are checked. It accepts one guild ID
+    /// or several, comma-separated, so a community spread over more than one Discord server can gate
+    /// sign-in on a role held in any of them. Order is kept (guilds are asked in that order) and
+    /// entries that are not snowflakes are dropped.
+    /// </summary>
+    internal static List<string> ParseGuildIds(string? value)
+    {
+        var guildIds = new List<string>();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return guildIds;
+        }
+
+        foreach (var entry in value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var trimmed = entry.Trim(RoleIdTrimChars);
+            if (trimmed.Length > 0 && trimmed.All(char.IsAsciiDigit) && !guildIds.Contains(trimmed))
+            {
+                guildIds.Add(trimmed);
+            }
+        }
+
+        return guildIds;
+    }
+
+    /// <summary>
+    /// The denial reason once no configured guild granted an allowed role. A lookup that failed for
+    /// any reason other than "not a member" wins, because the role might have been in that guild;
+    /// otherwise a member of at least one guild is missing the role, and a member of none is not in
+    /// the guild. With a single guild this is the same answer the single-guild check always gave.
+    /// </summary>
+    internal static string GuildRoleCheckDenial(bool inAnyGuild, bool anyLookupFailed) =>
+        anyLookupFailed ? "role_check_failed"
+        : inAnyGuild ? "missing_required_role"
+        : "not_in_guild";
 
     /// <summary>
     /// Returns true when the user holds any one of the allowed roles. <c>allowed_role_ids</c> is an
@@ -1447,11 +1504,14 @@ public partial class AuthController(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Role-based access enabled but Discord BotToken or GuildId not configured.")]
     private static partial void LogRoleMisconfigured(ILogger logger);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch guild member {UserId}: {Status} {Body}")]
-    private static partial void LogGuildMemberFetchFailed(ILogger logger, string userId, System.Net.HttpStatusCode status, string body);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to fetch guild member {UserId} in guild {GuildId}: {Status} {Body}")]
+    private static partial void LogGuildMemberFetchFailed(ILogger logger, string userId, string guildId, System.Net.HttpStatusCode status, string body);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Role check for {UserId}: allowed=[{Allowed}], user=[{UserRoles}]")]
-    private static partial void LogRoleCheck(ILogger logger, string userId, string allowed, string userRoles);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "User {UserId} is not a member of guild {GuildId}: {Body}")]
+    private static partial void LogGuildMemberNotFound(ILogger logger, string userId, string guildId, string body);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Role check for {UserId} in guild {GuildId}: allowed=[{Allowed}], user=[{UserRoles}]")]
+    private static partial void LogRoleCheck(ILogger logger, string userId, string guildId, string allowed, string userRoles);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "User {UserId} denied: has none of the allowed roles.")]
     private static partial void LogRoleDenied(ILogger logger, string userId);

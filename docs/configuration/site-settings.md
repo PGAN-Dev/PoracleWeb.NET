@@ -271,11 +271,13 @@ Access control.
 | Key | Label | Type | Description |
 |---|---|---|---|
 | `enable_roles` | Enable Role-Based Access | boolean | Only allow users with specific Discord roles to log in. It applies to Discord sign-in only: Telegram sign-in doesn't check it, and a Telegram user's access follows Poracle's own registration. Requires `Discord:BotToken` and `Discord:GuildId` in [appsettings](reference.md). |
-| `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs (e.g., `123456789,987654321`). A user needs **at least one** of these roles to log in. Leave empty to allow all. Only visible when `enable_roles` is enabled. |
+| `allowed_role_ids` | Allowed Role IDs | csv | Comma-separated Discord role IDs (e.g., `123456789,987654321`). A user needs **at least one** of these roles, in any of the configured guilds, to log in. Leave empty to allow all. Only visible when `enable_roles` is enabled. |
 | `delegation_poracle_channels` | Let Poracle's channel admins manage here | boolean | Off when unset. When on, anyone PoracleNG lists in `[[discord.delegated_admins]]` or `[[telegram.delegated_admins]]` as admin of a channel can manage that channel's alarms here as a delegate, provided the channel is registered as a destination on this site. A guild-wide entry covers only the registered channels. Saving it takes effect straight away rather than after the one-minute role cache. See [Letting Poracle's channel admins manage here](../features/webhooks.md#letting-poracles-channel-admins-manage-here). |
 
 !!! warning "Role-based access prerequisites"
     Role-based access requires `Discord:BotToken` and `Discord:GuildId` to be configured in appsettings. Without these, role checks cannot be performed and the setting has no effect.
+
+    `Discord:GuildId` (`DISCORD_GUILD_ID`) may list several guilds, comma-separated. The bot must be in each one; guilds are checked in order and the first allowed role found lets the user in. A user who is in none of them is denied with `not_in_guild`, and a guild the bot cannot read (anything but "not a member") denies with `role_check_failed` unless another guild already granted access.
 
 !!! note "Formatting `allowed_role_ids`"
     Enter the IDs bare: `123456789,987654321`. Surrounding quotes are stripped, but any entry that is not a numeric Discord role ID is ignored and logged as a warning. If nothing usable is left, non-admin logins are denied with `role_check_failed` rather than silently allowing everyone. Admins can always log in, so a bad value can be corrected from the admin panel.

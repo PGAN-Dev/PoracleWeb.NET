@@ -457,6 +457,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bump the jest group ([#907](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/907))
 - Bump the test group with 1 update ([#900](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/900))
 - Bump the test group with 2 updates ([#905](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/905))
+- **Role-based access can check more than one Discord server.** `DISCORD_GUILD_ID` took a single guild, so a community whose members are spread across several servers could only gate sign-in on one of them and lock out everyone who was not in it. It now takes a comma-separated list: the bot looks the user up in each guild in turn, and an allowed role in any one of them is enough. A single guild ID behaves exactly as before, including the `not_in_guild`, `missing_required_role` and `role_check_failed` reasons.
 
 ## [2.18.0] - 2026-09-15
 

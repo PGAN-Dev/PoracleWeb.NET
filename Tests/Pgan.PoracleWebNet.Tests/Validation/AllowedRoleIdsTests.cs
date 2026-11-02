@@ -106,4 +106,47 @@ public class AllowedRoleIdsTests
 
         Assert.False(AuthController.HasAllowedRole(allowed, []));
     }
+
+    [Fact]
+    public void ParsesSingleGuildId()
+    {
+        Assert.Equal(["400000000000000011"], AuthController.ParseGuildIds("400000000000000011"));
+    }
+
+    // A community spread over several Discord servers lists them all; a role in any one is enough.
+    [Fact]
+    public void ParsesSeveralGuildIdsInOrder()
+    {
+        var guildIds = AuthController.ParseGuildIds(" 400000000000000012, 400000000000000011 ,\"400000000000000013\"");
+
+        Assert.Equal(["400000000000000012", "400000000000000011", "400000000000000013"], guildIds);
+    }
+
+    [Fact]
+    public void DropsInvalidAndRepeatedGuildIds()
+    {
+        var guildIds = AuthController.ParseGuildIds("123456789,my-server,123456789,,987654321");
+
+        Assert.Equal(["123456789", "987654321"], guildIds);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData(",,")]
+    public void YieldsNoGuildIdsForEmptyValues(string? value)
+    {
+        Assert.Empty(AuthController.ParseGuildIds(value));
+    }
+
+    [Theory]
+    [InlineData(false, false, "not_in_guild")]
+    [InlineData(true, false, "missing_required_role")]
+    [InlineData(true, true, "role_check_failed")]
+    [InlineData(false, true, "role_check_failed")]
+    public void ReportsWhyNoGuildGrantedAccess(bool inAnyGuild, bool anyLookupFailed, string expected)
+    {
+        Assert.Equal(expected, AuthController.GuildRoleCheckDenial(inAnyGuild, anyLookupFailed));
+    }
 }

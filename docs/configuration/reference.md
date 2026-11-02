@@ -50,7 +50,7 @@ A method that isn't configured gets no button on the login page. Without Discord
 | Discord Client ID | `DISCORD_CLIENT_ID` | `Discord__ClientId` | — | Discord OAuth2 application client ID. Set together with the secret, or not at all. |
 | Discord Client Secret | `DISCORD_CLIENT_SECRET` | `Discord__ClientSecret` | — | Discord OAuth2 application client secret |
 | Discord Bot Token | `DISCORD_BOT_TOKEN` | `Discord__BotToken` | — | Posts geofence submissions to the forum channel and checks guild roles for role-gated Discord sign-in. Not needed for sign-in itself. |
-| Discord Guild ID | `DISCORD_GUILD_ID` | `Discord__GuildId` | — | Discord server ID |
+| Discord Guild ID | `DISCORD_GUILD_ID` | `Discord__GuildId` | — | Discord server ID used for role checks. Comma-separate several to accept an allowed role from any of them |
 | Discord Geofence Forum | `DISCORD_GEOFENCE_FORUM_CHANNEL_ID` | `Discord__GeofenceForumChannelId` | — | Forum channel for geofence submission threads |
 | Discord Frontend URL | — | `Discord__FrontendUrl` | `http://localhost:4200` | Unused. The setting class still declares it, but sign-in redirects come from `PUBLIC_URL` or the request; setting it changes nothing. |
 | Telegram Enabled | `TELEGRAM_ENABLED` | `Telegram__Enabled` | `false` | Enable Telegram authentication. Inferred `true` when the bot token and username are both set and this is left unset. |
