@@ -1170,6 +1170,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Pulizia {{action}} per tutti i tipi ({{count}} allarmi aggiornati)",
     "SNACK_TOGGLE_TYPE_ONE": "Pulizia {{action}} per {{type}} ({{count}} allarme aggiornato)",
     "SNACK_TOGGLE_TYPE_OTHER": "Pulizia {{action}} per {{type}} ({{count}} allarmi aggiornati)",
+    "REFUSED_CONFLICT_ONE": "Saltato {{count}}: un altro allarme usa già queste impostazioni.",
+    "REFUSED_CONFLICT_OTHER": "Saltati {{count}}: un altro allarme usa già queste impostazioni.",
+    "REFUSED_OTHER_ONE": "Saltato {{count}}: il server non ha accettato la modifica.",
+    "REFUSED_OTHER_OTHER": "Saltati {{count}}: il server non ha accettato la modifica.",
     "ENABLED": "abilitata",
     "DISABLED": "disabilitata"
   },

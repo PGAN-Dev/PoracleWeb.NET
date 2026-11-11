@@ -192,4 +192,43 @@ public class CleaningControllerTests : ControllerTestBase
 
         Assert.False(this._sut.Response.Headers.ContainsKey("X-Pair-Warning"));
     }
+
+    [Fact]
+    public async Task ToggleClean_RefusedRules_AreListedInTheResponse()
+    {
+        this._service.Setup(s => s.ToggleCleanLuresAsync("123456789", 1, 1))
+            .ReturnsAsync(new CleanToggleResult(2, null, [new PatchRefusal(473, PatchRefusalReasons.Conflict, "duplicate", 462)]));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.ToggleClean("lures", 1));
+
+        Assert.Equal(
+            """{"updated":2,"refused":[{"uid":473,"reason":"conflict"}]}""",
+            System.Text.Json.JsonSerializer.Serialize(ok.Value));
+    }
+
+    [Fact]
+    public async Task ToggleAll_RefusedRulesFromSeveralTypes_AreCollected()
+    {
+        this._service.Setup(s => s.ToggleCleanLuresAsync(It.IsAny<string>(), It.IsAny<int>(), 1))
+            .ReturnsAsync(new CleanToggleResult(2, null, [new PatchRefusal(473, PatchRefusalReasons.Conflict, "duplicate", 462)]));
+        this._service.Setup(s => s.ToggleCleanRaidsAsync(It.IsAny<string>(), It.IsAny<int>(), 1))
+            .ReturnsAsync(new CleanToggleResult(1, null, [new PatchRefusal(9, PatchRefusalReasons.Invalid, "bad", null)]));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.ToggleAll(1));
+        var json = System.Text.Json.JsonSerializer.Serialize(ok.Value);
+
+        Assert.Contains("\"updated\":3", json, StringComparison.Ordinal);
+        Assert.Contains("""{"uid":473,"reason":"conflict"}""", json, StringComparison.Ordinal);
+        Assert.Contains("""{"uid":9,"reason":"invalid"}""", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ToggleAll_NoRefusals_OmitsTheMember()
+    {
+        this._service.Setup(s => s.ToggleCleanMonstersAsync(It.IsAny<string>(), It.IsAny<int>(), 1)).ReturnsAsync(new CleanToggleResult(3));
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.ToggleAll(1));
+
+        Assert.DoesNotContain("refused", System.Text.Json.JsonSerializer.Serialize(ok.Value), StringComparison.Ordinal);
+    }
 }

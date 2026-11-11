@@ -1170,6 +1170,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Opschonen {{action}} voor alle typen ({{count}} alarmen bijgewerkt)",
     "SNACK_TOGGLE_TYPE_ONE": "Opschonen {{action}} voor {{type}} ({{count}} alarm bijgewerkt)",
     "SNACK_TOGGLE_TYPE_OTHER": "Opschonen {{action}} voor {{type}} ({{count}} alarmen bijgewerkt)",
+    "REFUSED_CONFLICT_ONE": "{{count}} overgeslagen: een ander alarm gebruikt die instellingen al.",
+    "REFUSED_CONFLICT_OTHER": "{{count}} overgeslagen: een ander alarm gebruikt die instellingen al.",
+    "REFUSED_OTHER_ONE": "{{count}} overgeslagen: de server accepteerde de wijziging niet.",
+    "REFUSED_OTHER_OTHER": "{{count}} overgeslagen: de server accepteerde de wijziging niet.",
     "ENABLED": "ingeschakeld",
     "DISABLED": "uitgeschakeld"
   },

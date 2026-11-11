@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cleaning "Enable all" and the per-type switches now say when they skipped alarms.** When PoracleNG refused to change an alarm because another alarm already used the settings it would end up with, the toast still read as full success and the switch flipped on. The toast now adds how many were skipped and why, and a switch whose alarms were all refused stays off.
+- **Clean mode no longer dims the text of rows with no alarms.** The whole row was faded, which put the label, description and "No alarms configured" hint below readable contrast in light and dark themes. Only the switch is faded now, and the list is keyboard-scrollable when every switch is disabled.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

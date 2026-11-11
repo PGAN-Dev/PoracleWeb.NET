@@ -1170,6 +1170,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Cleaning {{action}} for all types ({{count}} alarms updated)",
     "SNACK_TOGGLE_TYPE_ONE": "Cleaning {{action}} for {{type}} ({{count}} alarm updated)",
     "SNACK_TOGGLE_TYPE_OTHER": "Cleaning {{action}} for {{type}} ({{count}} alarms updated)",
+    "REFUSED_CONFLICT_ONE": "Skipped {{count}}: another alarm already uses those settings.",
+    "REFUSED_CONFLICT_OTHER": "Skipped {{count}}: another alarm already uses those settings.",
+    "REFUSED_OTHER_ONE": "Skipped {{count}}: the server wouldn't accept the change.",
+    "REFUSED_OTHER_OTHER": "Skipped {{count}}: the server wouldn't accept the change.",
     "ENABLED": "enabled",
     "DISABLED": "disabled"
   },

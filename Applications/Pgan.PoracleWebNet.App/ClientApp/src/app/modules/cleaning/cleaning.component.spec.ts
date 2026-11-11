@@ -197,6 +197,72 @@ describe('CleaningComponent', () => {
       expect(row('monsters').partial()).toEqual({ clean: 2, total: 3 });
     });
   });
+
+  // A toggle PoracleNG half-refuses used to read as full success: the refused rows never reached the toast.
+  describe('rules PoracleNG refused', () => {
+    const conflict = { uid: 473, reason: 'conflict' };
+    /** The component's own snack bar: the module it imports supplies its own, so a root provider is not the one it calls. */
+    const snackOpen = (component: CleaningComponent) =>
+      jest.spyOn((component as unknown as { snackBar: MatSnackBar }).snackBar, 'open').mockReturnValue(undefined as never);
+
+    it('says how many Enable All skipped because another alarm already uses those settings', () => {
+      const { cleaning, component, fixture } = setup({ lures: 3 }, {});
+      cleaning.toggleAll.mockReturnValue(of({ refused: [conflict], skipped: [], updated: 13 }));
+      const open = snackOpen(component);
+
+      component.toggleAll(true);
+
+      const message = open.mock.calls[0][0] as string;
+      expect(message).toContain('CLEANING.SNACK_TOGGLE_ALL');
+      expect(message).toContain('CLEANING.REFUSED_CONFLICT');
+      fixture.destroy();
+    });
+
+    it('names a refusal for any other reason separately', () => {
+      const { cleaning, component } = setup({ lures: 3 }, {});
+      cleaning.toggleAll.mockReturnValue(of({ refused: [conflict, { uid: 9, reason: 'invalid' }], skipped: [], updated: 5 }));
+      const open = snackOpen(component);
+
+      component.toggleAll(true);
+
+      const message = open.mock.calls[0][0] as string;
+      expect(message).toContain('CLEANING.REFUSED_CONFLICT');
+      expect(message).toContain('CLEANING.REFUSED_OTHER');
+    });
+
+    it('reports the per-type toggle the same way', () => {
+      const { cleaning, component, row } = setup({ lures: 3 }, {});
+      cleaning.toggleClean.mockReturnValue(of({ refused: [conflict], updated: 2 }));
+      const open = snackOpen(component);
+
+      component.toggleClean(row('lures'), true);
+
+      expect(open.mock.calls[0][0] as string).toContain('CLEANING.REFUSED_CONFLICT');
+    });
+
+    it('does not flip the switch on when every rule of the type was refused', () => {
+      const { cleaning, component, row } = setup({ lures: 1 }, {});
+      cleaning.toggleClean.mockReturnValue(of({ refused: [conflict], updated: 0 }));
+      const toggle = { checked: true } as { checked: boolean };
+
+      component.toggleClean(row('lures'), true, toggle as never);
+
+      expect(row('lures').enabled()).toBe(false);
+      expect(toggle.checked).toBe(false);
+    });
+
+    it('leaves a clean run exactly as it was: no clause, switch on', () => {
+      const { cleaning, component, row } = setup({ lures: 2 }, {});
+      cleaning.toggleClean.mockReturnValue(of({ updated: 2 }));
+      cleaning.getStatus.mockReturnValue(of({ ...ALL_OFF, lures: true }));
+      const open = snackOpen(component);
+
+      component.toggleClean(row('lures'), true);
+
+      expect(open.mock.calls[0][0] as string).not.toContain('REFUSED');
+      expect(row('lures').enabled()).toBe(true);
+    });
+  });
 });
 
 describe('CleaningComponent with nothing to clean', () => {

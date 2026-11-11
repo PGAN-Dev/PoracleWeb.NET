@@ -1170,6 +1170,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Oprydning {{action}} for alle typer ({{count}} alarmer opdateret)",
     "SNACK_TOGGLE_TYPE_ONE": "Oprydning {{action}} for {{type}} ({{count}} alarm opdateret)",
     "SNACK_TOGGLE_TYPE_OTHER": "Oprydning {{action}} for {{type}} ({{count}} alarmer opdateret)",
+    "REFUSED_CONFLICT_ONE": "{{count}} sprunget over: en anden alarm bruger allerede de indstillinger.",
+    "REFUSED_CONFLICT_OTHER": "{{count}} sprunget over: en anden alarm bruger allerede de indstillinger.",
+    "REFUSED_OTHER_ONE": "{{count}} sprunget over: serveren ville ikke acceptere ændringen.",
+    "REFUSED_OTHER_OTHER": "{{count}} sprunget over: serveren ville ikke acceptere ændringen.",
     "ENABLED": "aktiveret",
     "DISABLED": "deaktiveret"
   },
