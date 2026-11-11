@@ -34,7 +34,8 @@ public class AccountLinkControllerTests
     public AccountLinkControllerTests() =>
         this._drift.Setup(d => d.GetAsync(It.IsAny<LinkedPair>())).ReturnsAsync([]);
 
-    private AccountLinkController Create(string userId = DiscordId, bool impersonating = false, bool telegramEnabled = true, string discordClientId = "test-id")
+    private AccountLinkController Create(
+        string userId = DiscordId, bool impersonating = false, bool telegramEnabled = true, string discordClientId = "test-id", string botToken = BotToken)
     {
         var sut = new AccountLinkController(
             this._service.Object,
@@ -42,7 +43,7 @@ public class AccountLinkControllerTests
             this._settings.Object,
             this._protection,
             Options.Create(new DiscordSettings { ClientId = discordClientId, ClientSecret = "test-secret" }),
-            Options.Create(new TelegramSettings { Enabled = telegramEnabled, BotToken = BotToken }),
+            Options.Create(new TelegramSettings { Enabled = telegramEnabled, BotToken = botToken }),
             new ConfigurationBuilder().Build(),
             this._drift.Object,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<AccountLinkController>.Instance);
@@ -60,7 +61,7 @@ public class AccountLinkControllerTests
         return sut;
     }
 
-    private static Dictionary<string, string> Widget(DateTimeOffset authDate, string id = TelegramId)
+    private static Dictionary<string, string> Widget(DateTimeOffset authDate, string id = TelegramId, string token = BotToken)
     {
         var data = new Dictionary<string, string>
         {
@@ -69,7 +70,7 @@ public class AccountLinkControllerTests
             ["auth_date"] = authDate.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture),
         };
         var check = string.Join("\n", data.OrderBy(k => k.Key, StringComparer.Ordinal).Select(k => $"{k.Key}={k.Value}"));
-        using var hmac = new HMACSHA256(SHA256.HashData(Encoding.UTF8.GetBytes(BotToken)));
+        using var hmac = new HMACSHA256(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
         data["hash"] = Convert.ToHexStringLower(hmac.ComputeHash(Encoding.UTF8.GetBytes(check)));
         return data;
     }
@@ -186,6 +187,18 @@ public class AccountLinkControllerTests
         var obj = Assert.IsType<ObjectResult>(result);
         Assert.Equal(403, obj.StatusCode);
         Assert.Equal("link_app_unavailable", Prop(obj.Value, "code"));
+    }
+
+    [Fact]
+    public async Task TelegramLink_EnabledWithBlankBotToken_IsAppUnavailableAndNothingLinked()
+    {
+        // A payload signed with SHA256("") is what anyone can forge when the token is blank.
+        var result = await this.Create(botToken: "").TelegramLink(Widget(DateTimeOffset.UtcNow, token: ""));
+
+        var obj = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, obj.StatusCode);
+        Assert.Equal("link_app_unavailable", Prop(obj.Value, "code"));
+        this._service.Verify(s => s.LinkAsync(It.IsAny<string>(), It.IsAny<LinkSide>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

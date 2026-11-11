@@ -25,11 +25,12 @@ public class QuickPickDefaultsTests
         Mock<IQuickPickDefinitionRepository>? definitionRepo = null,
         Mock<IQuickPickAppliedStateRepository>? appliedRepo = null,
         Mock<IInvasionService>? invasionService = null,
-        Mock<IMonsterService>? monsterService = null) => new(
+        Mock<IMonsterService>? monsterService = null,
+        Mock<IRaidService>? raidService = null) => new(
             (definitionRepo ?? new Mock<IQuickPickDefinitionRepository>()).Object,
             (appliedRepo ?? new Mock<IQuickPickAppliedStateRepository>()).Object,
             (monsterService ?? new Mock<IMonsterService>()).Object,
-            new Mock<IRaidService>().Object,
+            (raidService ?? new Mock<IRaidService>()).Object,
             new Mock<IEggService>().Object,
             new Mock<IQuestService>().Object,
             (invasionService ?? new Mock<IInvasionService>()).Object,
@@ -128,6 +129,48 @@ public class QuickPickDefaultsTests
 
         Assert.NotEmpty(captured);
         return captured;
+    }
+
+    /// <summary>Applies one of the built-in raid picks and returns the raid handed to the raid service.</summary>
+    private async Task<Raid> ApplyRaidPickAsync(string pickId)
+    {
+        var definitionRepo = new Mock<IQuickPickDefinitionRepository>();
+        var raidService = new Mock<IRaidService>();
+        var pick = (await this._sut.GetDefaultPicksAsync()).Single(p => p.Id == pickId);
+        definitionRepo.Setup(r => r.GetByIdAsync(pickId)).ReturnsAsync(pick);
+
+        Raid? captured = null;
+        raidService.Setup(s => s.CreateAsync("user1", It.IsAny<Raid>()))
+            .Callback<string, Raid>((_, model) => captured = model)
+            .ReturnsAsync((string _, Raid model) => model);
+
+        var sut = BuildSut(definitionRepo: definitionRepo, raidService: raidService);
+        await sut.ApplyAsync("user1", 1, pickId, new QuickPickApplyRequest());
+
+        Assert.NotNull(captured);
+        return captured;
+    }
+
+    [Fact]
+    public async Task TheExEligibleRaidsPickTracksAnyLevelRatherThanLevelZero()
+    {
+        // The pick names no level. Raid.Level defaults to 0, which PoracleNG's v2 raid create refuses
+        // ("Invalid level (must be >= 1 when tracking by level)"), so the built-in could never be applied.
+        // A by-level rule with no tier is the any-level sentinel, the same value the add dialog sends.
+        var raid = await this.ApplyRaidPickAsync("raid-ex");
+
+        Assert.Equal(9000, raid.PokemonId);
+        Assert.Equal(9000, raid.Level);
+        Assert.Equal(1, raid.Exclusive);
+    }
+
+    [Fact]
+    public async Task ARaidPickThatNamesALevelKeepsIt()
+    {
+        var raid = await this.ApplyRaidPickAsync("raid-5star");
+
+        Assert.Equal(9000, raid.PokemonId);
+        Assert.Equal(5, raid.Level);
     }
 
     [Fact]
