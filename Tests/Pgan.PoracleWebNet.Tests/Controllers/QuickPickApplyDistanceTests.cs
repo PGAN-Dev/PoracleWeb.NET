@@ -92,6 +92,47 @@ public class QuickPickApplyDistanceTests : ControllerTestBase
         Assert.True(created.Count > 0, $"{alarmType}: nothing was created");
     }
 
+    // -- a clean override carrying the edit bit -----------------------------
+
+    public static TheoryData<string> TypesThatCannotEdit() => ["quest", "invasion", "nest", "gym", "maxbattle"];
+
+    public static TheoryData<string> TypesThatCanEdit() => ["monster", "raid", "egg", "lure"];
+
+    [Theory]
+    [MemberData(nameof(TypesThatCannotEdit))]
+    public async Task ACleanOverrideWithTheEditBitIsRefusedAsEditInPlaceOnTypesThatCannotEdit(string alarmType)
+    {
+        var (service, created) = Service(alarmType);
+
+        var ex = await Assert.ThrowsAsync<AlarmValidationException>(
+            () => service.ApplyAsync("u1", 1, "pick", new QuickPickApplyRequest { Clean = 3 }));
+
+        Assert.Contains("edit-in-place", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(created);
+    }
+
+    [Theory]
+    [MemberData(nameof(TypesThatCannotEdit))]
+    public async Task ACleanOverrideOfAutoDeleteStillAppliesOnTypesThatCannotEdit(string alarmType)
+    {
+        var (service, created) = Service(alarmType);
+
+        await service.ApplyAsync("u1", 1, "pick", new QuickPickApplyRequest { Clean = 1 });
+
+        Assert.True(created.Count > 0, $"{alarmType}: nothing was created");
+    }
+
+    [Theory]
+    [MemberData(nameof(TypesThatCanEdit))]
+    public async Task ACleanOverrideWithTheEditBitStillAppliesOnTypesThatCanEdit(string alarmType)
+    {
+        var (service, created) = Service(alarmType);
+
+        await service.ApplyAsync("u1", 1, "pick", new QuickPickApplyRequest { Clean = 7 });
+
+        Assert.True(created.Count > 0, $"{alarmType}: nothing was created");
+    }
+
     /// <summary>A pick of the given type with a plausible filter, over mocks that record what is created.</summary>
     private static (QuickPickService Service, List<object> Created) Service(string alarmType)
     {

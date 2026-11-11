@@ -1033,6 +1033,15 @@ public partial class QuickPickService(
             raid.PokemonId = 9000;
         }
 
+        // A by-level pick that names no level (the built-in "EX Eligible Raids" carries only exclusive) left
+        // Raid.Level at its default 0, which PoracleNG's v2 raid create refuses: a by-level rule's level must
+        // be >= 1. The any-level sentinel is what the add dialog sends for "any tier", and the translator
+        // drops it so PoracleNG stores its own wildcard. MaxBattle.Level already defaults to that sentinel.
+        if (raid.PokemonId == 9000 && raid.Level == 0)
+        {
+            raid.Level = 9000;
+        }
+
         raid.ProfileNo = profileNo;
 
         if (request.Distance.HasValue)
