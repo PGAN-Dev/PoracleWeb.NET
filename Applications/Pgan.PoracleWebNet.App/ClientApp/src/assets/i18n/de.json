@@ -1535,6 +1535,7 @@
     "SIGN_IN_AGAIN": "Erneut anmelden"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Der Server war gerade nicht erreichbar. Du bist weiterhin angemeldet; wir versuchen es weiter.",
     "ADMIN_ONLY": "Diese Seite ist nur für Admins.",
     "FEATURE_DISABLED": "Diese Funktion wurde vom Administrator deaktiviert."
   },

@@ -1535,6 +1535,7 @@
     "SIGN_IN_AGAIN": "Opnieuw aanmelden"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "De server was even niet bereikbaar. Je bent nog ingelogd; we blijven het proberen.",
     "ADMIN_ONLY": "Die pagina is alleen voor beheerders.",
     "FEATURE_DISABLED": "Deze functie is uitgeschakeld door de beheerder."
   },

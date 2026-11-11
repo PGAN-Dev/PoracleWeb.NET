@@ -1535,6 +1535,7 @@
     "SIGN_IN_AGAIN": "Se reconnecter"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Le serveur est injoignable pour le moment. Vous restez connecté(e) ; nous réessayons.",
     "ADMIN_ONLY": "Cette page est réservée aux administrateurs.",
     "FEATURE_DISABLED": "Cette fonctionnalité a été désactivée par l’administrateur."
   },

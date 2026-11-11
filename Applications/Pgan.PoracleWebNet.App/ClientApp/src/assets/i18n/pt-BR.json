@@ -1535,6 +1535,7 @@
     "SIGN_IN_AGAIN": "Entrar novamente"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Não foi possível falar com o servidor agora. Você continua conectado; vamos continuar tentando.",
     "ADMIN_ONLY": "Essa página é só para administradores.",
     "FEATURE_DISABLED": "Este recurso foi desativado pelo administrador."
   },
