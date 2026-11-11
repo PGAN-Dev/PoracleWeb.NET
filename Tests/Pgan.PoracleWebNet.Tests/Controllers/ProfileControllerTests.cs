@@ -175,9 +175,33 @@ public class ProfileControllerTests : ControllerTestBase
     {
         var existing = new Profile { Id = "123456789", ProfileNo = 2 };
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 2)).ReturnsAsync(existing);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([P(1, "A"), existing]);
 
         Assert.IsType<NoContentResult>(await this._sut.Delete(2));
         this._humanProxy.Verify(p => p.DeleteProfileAsync("123456789", 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteRefusesTheOnlyProfileAndNeverCallsTheProxy()
+    {
+        var only = P(1, "Only");
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(only);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([only]);
+
+        var result = Assert.IsType<BadRequestObjectResult>(await this._sut.Delete(1));
+        Assert.Contains("only profile", result.Value!.ToString());
+        this._humanProxy.Verify(p => p.DeleteProfileAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteStillAllowsDeletingTheActiveProfileWhenAnotherExists()
+    {
+        var active = P(1, "Active");
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(active);
+        this._profileService.Setup(s => s.GetByUserAsync("123456789")).ReturnsAsync([active, P(2, "Other")]);
+
+        Assert.IsType<NoContentResult>(await this._sut.Delete(1));
+        this._humanProxy.Verify(p => p.DeleteProfileAsync("123456789", 1), Times.Once);
     }
 
     [Fact]

@@ -367,6 +367,14 @@ public class ProfileController(
             return this.NotFound();
         }
 
+        // The SPA only disables the button for the active profile, so the API has to refuse on its own:
+        // deleting the last profile leaves its alarms orphaned at that number, and they attach themselves
+        // to whatever profile is later created there.
+        if ((await this._profileService.GetByUserAsync(this.UserId)).Count() <= 1)
+        {
+            return this.BadRequest(new { error = "You can't delete your only profile." });
+        }
+
         // PoracleNG cascade-deletes alarms scoped to (id, profile_no) and
         // reassigns humans.current_profile_no if the active profile is deleted.
         var written = await this._pairWriter.WriteAsync(this.UserId, async id =>
