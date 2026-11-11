@@ -12,7 +12,8 @@ public class TelegramWidgetVerifierTests
 
     /// <summary>A payload signed with <see cref="Token"/>. <paramref name="shape"/> runs before signing, <paramref name="tamper"/> after.</summary>
     private static Dictionary<string, string> Signed(
-        TimeSpan age, Action<Dictionary<string, string>>? tamper = null, bool omitHash = false, Action<Dictionary<string, string>>? shape = null)
+        TimeSpan age, Action<Dictionary<string, string>>? tamper = null, bool omitHash = false, Action<Dictionary<string, string>>? shape = null,
+        string token = Token)
     {
         var data = new Dictionary<string, string>
         {
@@ -24,13 +25,29 @@ public class TelegramWidgetVerifierTests
         };
         shape?.Invoke(data);
         var check = string.Join("\n", data.OrderBy(k => k.Key, StringComparer.Ordinal).Select(k => $"{k.Key}={k.Value}"));
-        using var hmac = new HMACSHA256(SHA256.HashData(Encoding.UTF8.GetBytes(Token)));
+        using var hmac = new HMACSHA256(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
         if (!omitHash)
         {
             data["hash"] = Convert.ToHexStringLower(hmac.ComputeHash(Encoding.UTF8.GetBytes(check)));
         }
         tamper?.Invoke(data);
         return data;
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void ABlankBotTokenRefusesAPayloadSignedWithTheEmptyKey(string botToken)
+    {
+        // Without a token the HMAC key would be SHA256(""), which anyone can derive, so a forged payload
+        // naming any Telegram id would verify. TELEGRAM_ENABLED=true with a blank TELEGRAM_BOT_TOKEN is
+        // exactly what .env.example shows commented out.
+        var forged = Signed(TimeSpan.FromMinutes(1), token: botToken);
+
+        var r = TelegramWidgetVerifier.Verify(forged, botToken, TelegramWidgetVerifier.SignInMaxAge, Now);
+
+        Assert.False(r.Valid);
+        Assert.Equal("not_configured", r.Failure);
     }
 
     [Fact]

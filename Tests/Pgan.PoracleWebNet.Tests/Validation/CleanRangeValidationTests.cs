@@ -22,6 +22,11 @@ public class CleanRangeValidationTests
     public static TheoryData<int> AcceptedValues =>
         new() { 0, 1, 2, 3, 4, 5, 6, 7 };
 
+    // Quest, invasion, nest, gym and maxbattle take every value but the edit bit: PoracleNG refuses it there.
+    // CleanEditBitValidationTests covers that refusal.
+    public static TheoryData<int> AcceptedValuesWithoutEdit =>
+        new() { 0, 1, 4, 5 };
+
     public static TheoryData<int> RejectedValues =>
         new() { -1, 8 };
 
@@ -36,7 +41,7 @@ public class CleanRangeValidationTests
     public void MonsterCreateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new MonsterCreate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void QuestCreateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new QuestCreate(), value));
 
     [Theory]
@@ -44,7 +49,7 @@ public class CleanRangeValidationTests
     public void QuestCreateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new QuestCreate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void InvasionCreateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new InvasionCreate(), value));
 
     [Theory]
@@ -60,7 +65,7 @@ public class CleanRangeValidationTests
     public void LureCreateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new LureCreate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void NestCreateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new NestCreate(), value));
 
     [Theory]
@@ -68,7 +73,7 @@ public class CleanRangeValidationTests
     public void NestCreateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new NestCreate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void GymCreateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new GymCreate(), value));
 
     [Theory]
@@ -76,7 +81,7 @@ public class CleanRangeValidationTests
     public void GymCreateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new GymCreate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void MaxBattleCreateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new MaxBattleCreate(), value));
 
     [Theory]
@@ -94,7 +99,7 @@ public class CleanRangeValidationTests
     public void MonsterUpdateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new MonsterUpdate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void QuestUpdateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new QuestUpdate(), value));
 
     [Theory]
@@ -102,7 +107,7 @@ public class CleanRangeValidationTests
     public void QuestUpdateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new QuestUpdate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void InvasionUpdateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new InvasionUpdate(), value));
 
     [Theory]
@@ -118,7 +123,7 @@ public class CleanRangeValidationTests
     public void LureUpdateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new LureUpdate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void NestUpdateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new NestUpdate(), value));
 
     [Theory]
@@ -126,7 +131,7 @@ public class CleanRangeValidationTests
     public void NestUpdateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new NestUpdate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void GymUpdateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new GymUpdate(), value));
 
     [Theory]
@@ -134,7 +139,7 @@ public class CleanRangeValidationTests
     public void GymUpdateCleanRejectsOutOfRange(int value) => Assert.False(ValidateClean(new GymUpdate(), value));
 
     [Theory]
-    [MemberData(nameof(AcceptedValues))]
+    [MemberData(nameof(AcceptedValuesWithoutEdit))]
     public void MaxBattleUpdateCleanAcceptsBitmaskRange(int value) => Assert.True(ValidateClean(new MaxBattleUpdate(), value));
 
     [Theory]

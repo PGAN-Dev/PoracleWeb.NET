@@ -44,6 +44,7 @@ public class QuestCreate
 
     // clean is a PoracleNG bitmask: bit 1 = auto-delete, bit 2 = edit-in-place, bit 4 = summary.
     [Range(0, 7)]
+    [NoCleanEditBit]
     public int Clean
     {
         get; set;

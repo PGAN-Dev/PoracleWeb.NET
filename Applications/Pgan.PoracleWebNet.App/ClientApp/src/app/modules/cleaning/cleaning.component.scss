@@ -39,7 +39,10 @@
   margin-bottom: 8px;
 }
 
-.cleaning-row.disabled-row {
+// Only the switch looks disabled. Dimming the whole row put the label, description and "No alarms
+// configured" hint under WCAG AA contrast (4.44:1, 3.11:1, 2.51:1) while they are the part that explains
+// why the switch is off.
+.cleaning-row.disabled-row mat-slide-toggle {
   opacity: 0.6;
 }
 

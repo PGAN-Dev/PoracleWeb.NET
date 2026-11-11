@@ -4,12 +4,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSlideToggle, MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { CleaningService, CleanAlarmType, CleanCount } from '../../core/services/cleaning.service';
+import { CleaningService, CleanAlarmType, CleanCount, CleanRefusal } from '../../core/services/cleaning.service';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { SettingsService } from '../../core/services/settings.service';
@@ -207,21 +207,28 @@ export class CleaningComponent implements OnInit {
         next: result => {
           // Only the rows the server wrote. An empty type has nothing to flip, and a disabled one was
           // skipped, so marking either on showed a state a reload would take back.
-          for (const item of this.applicableItems()) {
-            item.enabled.set(enabled);
-            item.partial.set(null);
+          // With a refusal the status read below says which types actually moved; guessing "all" here is
+          // what let a half-refused toggle report full success.
+          if ((result.refused ?? []).length === 0) {
+            for (const item of this.applicableItems()) {
+              item.enabled.set(enabled);
+              item.partial.set(null);
+            }
           }
           this.toggling.set(false);
           this.readStatus();
           const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
-          this.snackBar.open(this.i18n.plural('CLEANING.SNACK_TOGGLE_ALL', result.updated, { action }), this.i18n.instant('TOAST.OK'), {
-            duration: 3000,
-          });
+          const refused = result.refused ?? [];
+          this.snackBar.open(
+            this.withRefusals(this.i18n.plural('CLEANING.SNACK_TOGGLE_ALL', result.updated, { action }), refused),
+            this.i18n.instant('TOAST.OK'),
+            { duration: refused.length > 0 ? 8000 : 3000 },
+          );
         },
       });
   }
 
-  toggleClean(item: CleaningItem, enabled: boolean): void {
+  toggleClean(item: CleaningItem, enabled: boolean, toggle?: MatSlideToggle): void {
     this.toggling.set(true);
     this.cleaningService
       .toggleClean(item.type, enabled)
@@ -234,16 +241,23 @@ export class CleaningComponent implements OnInit {
           });
         },
         next: result => {
-          item.enabled.set(enabled);
-          item.partial.set(null);
+          const refused = result.refused ?? [];
+          if (refused.length === 0) {
+            item.enabled.set(enabled);
+            item.partial.set(null);
+          } else if (toggle) {
+            // The switch has already moved under the user's finger; the signal has not, so binding alone
+            // would leave it showing a state the server refused. The status read below settles the rest.
+            toggle.checked = item.enabled();
+          }
           this.toggling.set(false);
           this.readStatus();
           const action = this.i18n.instant(enabled ? 'CLEANING.ENABLED' : 'CLEANING.DISABLED');
           const type = this.i18n.instant(item.labelKey);
           this.snackBar.open(
-            this.i18n.plural('CLEANING.SNACK_TOGGLE_TYPE', result.updated, { action, type }),
+            this.withRefusals(this.i18n.plural('CLEANING.SNACK_TOGGLE_TYPE', result.updated, { action, type }), refused),
             this.i18n.instant('TOAST.OK'),
-            { duration: 3000 },
+            { duration: refused.length > 0 ? 8000 : 3000 },
           );
         },
       });
@@ -291,5 +305,20 @@ export class CleaningComponent implements OnInit {
           this.loading.set(false);
         },
       });
+  }
+
+  /**
+   * The success line, then one clause per kind of refusal. A conflict is a rule that would match another
+   * of the member's alarms once changed; anything else is a refusal the server did not explain further.
+   */
+  private withRefusals(success: string, refused: CleanRefusal[]): string {
+    if (refused.length === 0) return success;
+    const conflicts = refused.filter(r => r.reason === 'conflict').length;
+    const others = refused.length - conflicts;
+    const clauses: string[] = [];
+    if (conflicts > 0) clauses.push(this.i18n.plural('CLEANING.REFUSED_CONFLICT', conflicts));
+    if (others > 0) clauses.push(this.i18n.plural('CLEANING.REFUSED_OTHER', others));
+    const lead = /[.!?]$/.test(success) ? success : `${success}.`;
+    return [lead, ...clauses].join(' ');
   }
 }

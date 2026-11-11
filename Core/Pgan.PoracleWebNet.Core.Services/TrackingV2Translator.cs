@@ -181,6 +181,7 @@ internal static class TrackingV2Translator
         },
         ["quest"] = new TypeSpec
         {
+            EditSupported = false,
             Integers = ["amount", "distance", "form", "reward", "reward_type"],
             Booleans = ["shiny"],
             Required = ["reward_type"],
@@ -189,6 +190,7 @@ internal static class TrackingV2Translator
         },
         ["gym"] = new TypeSpec
         {
+            EditSupported = false,
             Integers = ["distance"],
             Strings = ["gym_id"],
             Booleans = ["battle_changes", "slot_changes"],
@@ -201,6 +203,7 @@ internal static class TrackingV2Translator
         },
         ["maxbattle"] = new TypeSpec
         {
+            EditSupported = false,
             Integers = ["distance", "evolution", "form", "level", "move", "pokemon_id"],
             Strings = ["station_id"],
             Booleans = ["gmax"],
@@ -213,6 +216,7 @@ internal static class TrackingV2Translator
         },
         ["nest"] = new TypeSpec
         {
+            EditSupported = false,
             Integers = ["distance", "form", "min_spawn_avg", "pokemon_id"],
 
             Defaults = ReadDefaults(cleanFlags: true, ("pokemon_id", 0), ("form", 0), ("min_spawn_avg", 0)),
@@ -226,6 +230,7 @@ internal static class TrackingV2Translator
         },
         ["invasion"] = new TypeSpec
         {
+            EditSupported = false,
             Integers = ["distance"],
 
             // grunt_type is the targeting field and the one every v2 read emits. type_id and grunt_id are
@@ -706,7 +711,7 @@ internal static class TrackingV2Translator
         {
             case "clean":
                 return spec.HasCleanFlags
-                    ? TryWriteClean(writer, property.Value, out unsupported)
+                    ? TryWriteClean(writer, spec, property.Value, out unsupported)
                     : TryWriteAbsentClean(property.Value, out unsupported);
 
             case "ping":
@@ -915,7 +920,7 @@ internal static class TrackingV2Translator
     }
 
     /// <summary>The 3-bit mask becomes three booleans. Bits outside the three known ones are not v2's.</summary>
-    private static bool TryWriteClean(Utf8JsonWriter writer, JsonElement value, out string? unsupported)
+    private static bool TryWriteClean(Utf8JsonWriter writer, TypeSpec spec, JsonElement value, out string? unsupported)
     {
         unsupported = null;
 
@@ -935,6 +940,12 @@ internal static class TrackingV2Translator
             // A bit PoracleWeb does not model. v2 has no field for it, so translating would drop it;
             // v1 stores the integer as-is. See the clean-bitmask note in CLAUDE.md.
             unsupported = $"clean carries bits outside the three known flags ({mask})";
+            return false;
+        }
+
+        if (!spec.EditSupported && CleanFlags.IsEdit(mask))
+        {
+            unsupported = NoCleanEditBitAttribute.Message;
             return false;
         }
 
@@ -1084,6 +1095,12 @@ internal static class TrackingV2Translator
 
         /// <summary>Whether this type has <c>clean</c>/<c>edit</c>/<c>summary</c> at all. Fort does not.</summary>
         public bool HasCleanFlags { get; init; } = true;
+
+        /// <summary>
+        /// False where PoracleNG refuses <c>edit: true</c> (<c>rejectEdit</c>: quest, invasion, nest, gym, maxbattle),
+        /// so the edit bit is refused here instead of reaching it as a 4xx with its raw text.
+        /// </summary>
+        public bool EditSupported { get; init; } = true;
 
         /// <summary>Fields that must be present and non-null, or the row is refused.</summary>
         public string[] Required { get; init; } = [];
