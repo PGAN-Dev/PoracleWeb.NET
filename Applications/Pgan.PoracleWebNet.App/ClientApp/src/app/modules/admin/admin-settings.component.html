@@ -229,9 +229,7 @@
           class="section-header section-header-toggle"
           (click)="toggleGroup(group.labelKey)"
           [attr.aria-expanded]="!isCollapsed(group.labelKey)"
-          [attr.aria-label]="
-            (isCollapsed(group.labelKey) ? 'ADMIN_SETTINGS.EXPAND_SECTION' : 'ADMIN_SETTINGS.COLLAPSE_SECTION') | translate
-          ">
+          [attr.aria-label]="'ADMIN_SETTINGS.SECTION_TOGGLE' | translate: { section: group.labelKey | translate }">
           <mat-icon class="section-icon" aria-hidden="true">{{ group.icon }}</mat-icon>
           <span class="section-label">{{ group.labelKey | translate }}</span>
           @if (groupSummary(group)) {

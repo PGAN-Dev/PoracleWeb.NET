@@ -75,7 +75,7 @@
 
 @if (applying()) {
   <div class="apply-progress">
-    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'COMMON.WORKING' | translate"></mat-progress-bar>
     <span class="apply-status">{{ applyStatus() }}</span>
   </div>
 }

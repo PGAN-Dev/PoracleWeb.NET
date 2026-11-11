@@ -41,7 +41,13 @@
             | translate: { done: status().humansDone, total: status().humansTotal }
         }}
       </p>
-      <mat-progress-bar mode="determinate" [value]="progress()"></mat-progress-bar>
+      <mat-progress-bar
+        mode="determinate"
+        [value]="progress()"
+        [attr.aria-label]="
+          (status().phase === 'Scanning' ? 'ADMIN.RULE_REPAIR.SCANNING' : 'ADMIN.RULE_REPAIR.APPLYING')
+            | translate: { done: status().humansDone, total: status().humansTotal }
+        "></mat-progress-bar>
     }
 
     @if (status().phase === 'Scanned') {

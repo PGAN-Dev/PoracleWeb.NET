@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dialogs opened from a menu now hand keyboard focus back to the menu's button when they close.** Delete all alarms, Manage delegates, Reset defaults and every other dialog started from a row menu left focus on the page body, so a keyboard user lost their place after pressing Escape. One listener now covers every menu in PoracleWeb.NET, including ones added later.
+- **The section headers on Admin > Settings now have their own names for screen readers.** All nine read "Collapse section"; each now reads as its group ("Telegram section", "Features section" and so on), and the expanded or collapsed state is still announced separately.
+- **Progress bars now announce what is in progress.** The rule repair scan, the profile dialogs, quick pick apply, GeoJSON import, the location dialog and the profiles overview drew an unnamed bar; each is labelled in all eleven languages, and a test fails if a new bar ships without a name.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

@@ -131,7 +131,7 @@
     </div>
 
     @if (importing()) {
-      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      <mat-progress-bar mode="indeterminate" [attr.aria-label]="'COMMON.WORKING' | translate"></mat-progress-bar>
     }
   }
 
