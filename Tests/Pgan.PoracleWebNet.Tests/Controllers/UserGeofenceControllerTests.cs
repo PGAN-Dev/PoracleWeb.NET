@@ -183,12 +183,12 @@ public class UserGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task GetDeleteImpactReturnsForbidWhenNotOwned()
+    public async Task GetDeleteImpactReturnsNotFoundWhenNotOwned()
     {
         this._service.Setup(s => s.GetDeleteImpactAsync("123456789", 42))
             .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
 
-        Assert.IsType<ForbidResult>(await this._sut.GetDeleteImpact(42));
+        AssertNotFoundBody(await this._sut.GetDeleteImpact(42), new GeofenceNotFoundException(42).Message);
     }
 
     [Fact]
@@ -209,14 +209,14 @@ public class UserGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task DeleteGeofenceReturnsForbidWhenNotOwned()
+    public async Task DeleteGeofenceReturnsNotFoundWhenNotOwned()
     {
         this._service.Setup(s => s.DeleteAsync("123456789", 1, 42, true))
             .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
 
         var result = await this._sut.DeleteGeofence(42, "delete");
 
-        Assert.IsType<ForbidResult>(result);
+        AssertNotFoundBody(result, new GeofenceNotFoundException(42).Message);
     }
 
     [Fact]
@@ -256,14 +256,14 @@ public class UserGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task SubmitForReviewReturnsForbidWhenNotOwned()
+    public async Task SubmitForReviewReturnsNotFoundWhenNotOwned()
     {
         this._service.Setup(s => s.SubmitForReviewAsync("123456789", "pweb_other_downtown"))
             .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
 
         var result = await this._sut.SubmitForReview("pweb_other_downtown");
 
-        Assert.IsType<ForbidResult>(result);
+        AssertNotFoundBody(result, new GeofenceNotFoundException("pweb_other_downtown").Message);
     }
 
     // --- ActivateGeofence ---
@@ -301,14 +301,14 @@ public class UserGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task ActivateGeofenceReturnsForbidWhenNotOwned()
+    public async Task ActivateGeofenceReturnsNotFoundWhenNotOwned()
     {
         this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 42))
             .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
 
         var result = await this._sut.ActivateGeofence(42);
 
-        Assert.IsType<ForbidResult>(result);
+        AssertNotFoundBody(result, new GeofenceNotFoundException(42).Message);
     }
 
     [Fact]
@@ -346,14 +346,46 @@ public class UserGeofenceControllerTests : ControllerTestBase
     }
 
     [Fact]
-    public async Task DeactivateGeofenceReturnsForbidWhenNotOwned()
+    public async Task DeactivateGeofenceReturnsNotFoundWhenNotOwned()
     {
         this._service.Setup(s => s.RemoveFromProfileAsync("123456789", 1, 42))
             .ThrowsAsync(new UnauthorizedAccessException("Geofence does not belong to this user."));
 
         var result = await this._sut.DeactivateGeofence(42);
 
-        Assert.IsType<ForbidResult>(result);
+        AssertNotFoundBody(result, new GeofenceNotFoundException(42).Message);
+    }
+
+    // A geofence the caller does not own must answer exactly as one that does not exist (same status, same
+    // body), or the id space can be enumerated. Matches the rename route, which answers 404 for both.
+    private static void AssertNotFoundBody(IActionResult result, string expectedMessage)
+    {
+        var notFound = Assert.IsType<NotFoundObjectResult>(result);
+        Assert.Equal(404, notFound.StatusCode);
+        var error = notFound.Value!.GetType().GetProperty("error")!.GetValue(notFound.Value);
+        Assert.Equal(expectedMessage, error);
+    }
+
+    [Fact]
+    public async Task SubmitForReviewReturnsNotFoundWhenNotExists()
+    {
+        this._service.Setup(s => s.SubmitForReviewAsync("123456789", "pweb_missing"))
+            .ThrowsAsync(new GeofenceNotFoundException("pweb_missing"));
+
+        AssertNotFoundBody(await this._sut.SubmitForReview("pweb_missing"), new GeofenceNotFoundException("pweb_missing").Message);
+    }
+
+    [Fact]
+    public async Task NotOwnedAndMissingAnswerIdenticallyOnEveryIdRoute()
+    {
+        this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 42)).ThrowsAsync(new UnauthorizedAccessException("x"));
+        this._service.Setup(s => s.AddToProfileAsync("123456789", 1, 43)).ThrowsAsync(new GeofenceNotFoundException(43));
+
+        var notOwned = Assert.IsType<NotFoundObjectResult>(await this._sut.ActivateGeofence(42));
+        var missing = Assert.IsType<NotFoundObjectResult>(await this._sut.ActivateGeofence(43));
+
+        Assert.Equal(missing.StatusCode, notOwned.StatusCode);
+        Assert.Equal("Geofence with ID 42 not found.", notOwned.Value!.GetType().GetProperty("error")!.GetValue(notOwned.Value));
     }
 
     // --- GetRegions ---

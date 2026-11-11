@@ -57,6 +57,27 @@ describe('InvasionEditDialogComponent', () => {
     TestBed.createComponent(InvasionEditDialogComponent).detectChanges();
   }
 
+  describe('Gender hint', () => {
+    function hint(gruntType: string): null | string {
+      setup(gruntType);
+      const fixture = TestBed.createComponent(InvasionEditDialogComponent);
+      fixture.detectChanges();
+      return (fixture.nativeElement as HTMLElement).querySelector('.event-hint')?.textContent?.trim() ?? null;
+    }
+
+    it('names the fixed gender for a leader, not Pokestop events', () => {
+      expect(hint('cliff')).toBe('INVASIONS.GENDER_FIXED_NA');
+    });
+
+    it('keeps the Pokestop event sentence for an event', () => {
+      expect(hint('kecleon')).toBe('INVASIONS.GENDER_FILTER_NA');
+    });
+
+    it('shows no hint where the gender filter applies', () => {
+      expect(hint('water')).toBeNull();
+    });
+  });
+
   describe('Kind sent with a save', () => {
     beforeEach(() => update.mockClear());
 

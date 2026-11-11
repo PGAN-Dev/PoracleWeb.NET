@@ -1,6 +1,6 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, EventEmitter, Input, OnInit, Output, inject, signal, computed, effect } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject, input, signal, computed, effect, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatChipsModule } from '@angular/material/chips';
@@ -10,6 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import { LinkSide } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfigService } from '../../../core/services/config.service';
 import { IconService } from '../../../core/services/icon.service';
@@ -87,6 +88,7 @@ export class TemplateSelectorComponent implements OnInit {
   private config = inject(ConfigService);
 
   private http = inject(HttpClient);
+  private listedFor: null | string = null;
   private settings = inject(SettingsService);
   private templateService = inject(TemplateService);
   private translate = inject(TranslateService);
@@ -96,7 +98,12 @@ export class TemplateSelectorComponent implements OnInit {
 
   conditionState = signal<Record<string, boolean>>({});
   dtsEntries = signal<DtsRaw[]>([]);
-  platform = computed(() => (this.auth.user()?.type?.startsWith('telegram') ? 'telegram' : 'discord'));
+  /**
+   * The app the alarm is delivered to (the dialog's "Deliver to" value). Null or unset means the signed-in
+   * person's own platform, which is every unlinked person and every dialog that has no such field.
+   */
+  readonly side = input<LinkSide | null>(null);
+  platform = computed(() => this.side() ?? (this.auth.user()?.type?.startsWith('telegram') ? 'telegram' : 'discord'));
   @Input() value = '';
   currentTemplate = computed(() => {
     const entries = this.dtsEntries();
@@ -160,6 +167,12 @@ export class TemplateSelectorComponent implements OnInit {
   @Output() valueChange = new EventEmitter<string>();
 
   constructor() {
+    // List the templates of the side the alarm goes to, and list them again when that side changes.
+    effect(() => {
+      const platform = this.platform();
+      untracked(() => this.loadTemplates(platform));
+    });
+
     // When the embed changes, extract conditions
     effect(() => {
       const source = this.currentEmbed() ?? this.telegramSource()?.content;
@@ -272,17 +285,6 @@ export class TemplateSelectorComponent implements OnInit {
     };
     this.previewColor = colors[this.alarmType] || '#4caf50';
 
-    this.templateService.getTemplatesForType(this.alarmType).subscribe(t => {
-      // If no templates exist for this alarm type, provide a sensible default.
-      // PoracleNG uses template "1" as the default when none is configured.
-      const templates = t.length > 0 ? t : [1];
-      this.templates.set(templates);
-      if (!this.value && templates.length > 0) {
-        this.value = templates[0].toString();
-        this.valueChange.emit(this.value);
-      }
-    });
-
     this.loadDts();
   }
 
@@ -365,6 +367,25 @@ export class TemplateSelectorComponent implements OnInit {
         TemplateSelectorComponent.dtsCache = entries;
         this.dtsEntries.set(entries);
       },
+    });
+  }
+
+  private loadTemplates(platform: LinkSide): void {
+    const changedSide = this.listedFor !== null && this.listedFor !== platform;
+    this.listedFor = platform;
+    this.templateService.getTemplatesForType(this.alarmType, platform).subscribe(t => {
+      if (this.listedFor !== platform) return;
+      // If no templates exist for this alarm type, provide a sensible default.
+      // PoracleNG uses template "1" as the default when none is configured.
+      const templates = t.length > 0 ? t : [1];
+      this.templates.set(templates);
+      // An empty value takes the first template. So does one the newly chosen side does not have, but only
+      // after the person changed side: an alarm opened for edit keeps whatever template it was saved with.
+      const missing = changedSide && !templates.some(x => x.toString() === this.value);
+      if ((!this.value || missing) && templates.length > 0) {
+        this.value = templates[0].toString();
+        this.valueChange.emit(this.value);
+      }
     });
   }
 }

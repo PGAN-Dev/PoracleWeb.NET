@@ -97,7 +97,7 @@
 <!-- Skeleton Loading -->
 @if (loading()) {
   <div class="skeleton-container">
-    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <mat-progress-bar mode="indeterminate" [attr.aria-label]="'COMMON.LOADING' | translate"></mat-progress-bar>
     @for (i of skeletonPanels; track i) {
       <div class="skeleton-panel">
         <div class="skeleton-panel-header">

@@ -30,7 +30,13 @@
     <mat-spinner diameter="48"></mat-spinner>
   </div>
 } @else {
-  <div class="cleaning-content">
+  <!-- With nothing to switch every control is disabled, so the page's scroll area has no focusable child and a
+       keyboard user cannot scroll it. Making the list itself focusable in that one state gives them a way in. -->
+  <div
+    class="cleaning-content"
+    [attr.tabindex]="hasApplicable() ? null : 0"
+    [attr.role]="hasApplicable() ? null : 'region'"
+    [attr.aria-label]="hasApplicable() ? null : ('CLEANING.PAGE_TITLE' | translate)">
     @for (item of visibleItems(); track item.type) {
       <div class="cleaning-row" [class.disabled-row]="!item.hasAlarms()">
         <div class="cleaning-label">
@@ -51,7 +57,7 @@
         <mat-slide-toggle
           [checked]="item.enabled()"
           [disabled]="toggling() || !item.hasAlarms()"
-          (change)="toggleClean(item, $event.checked)">
+          (change)="toggleClean(item, $event.checked, $event.source)">
         </mat-slide-toggle>
       </div>
     }

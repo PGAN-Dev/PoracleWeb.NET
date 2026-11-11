@@ -20,6 +20,11 @@ describe('app routes', () => {
     expect(page?.canActivate?.length).toBe(2);
   });
 
+  it('asks before the member Areas page drops unsaved ticks', () => {
+    const page = routes.find(r => r.path === 'areas');
+    expect(page?.canDeactivate?.length).toBe(1);
+  });
+
   it('redirects /my-webhooks', () => {
     // A delegate's bookmark, and the exit route an impersonation session started before the rename recorded.
     const old = routes.find(r => r.path === 'my-webhooks');

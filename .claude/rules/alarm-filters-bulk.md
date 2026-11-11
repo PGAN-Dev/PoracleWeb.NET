@@ -78,16 +78,21 @@ reads `tracking.pokemon_edit` off `/api/config/values` via `IPoracleApiProxy.Get
 both pokemon dialogs; hidden means the form control still exists (seeded from the stored bit) so a toggle
 a bot set earlier round-trips unchanged even when the control itself isn't shown.
 
-**#246 also tightens `/api/v2`: `edit: true` now 422s for gym, invasion, nest, maxbattle and quest** --
+**#246 also tightens `/api/v2`: `edit: true` is refused for gym, invasion, nest, maxbattle and quest** --
 alert types whose message is never tracked for editing, so the bit was never settable there (no UI, and
-the bot's `!track edit` keyword was never declared for those types either). Only pokemon, lure, raid, egg
-and pokestop events (incident) can carry it going forward. `TrackingV2Translator` currently writes `edit`
-unconditionally for every type but fort ("all but fort" in the shape-differences table below) -- latent,
-not live-broken, since nothing has ever set bit 2 for the five rejected types, but worth tightening before
-an operator upgrades PoracleNG out from under it. Verified live against a PoracleNG build carrying #246
-(dev-01's "next" testbed, rebuilt 2026-10-14 to commit `4931758f`): `tracking.pokemon_edit: true` on
-`/api/config/values`, a v2 pokemon PUT with `edit: true` returns 200 and round-trips `clean: 2` on the v1
-read, and the identical PUT against gym returns 422.
+the bot's `!track edit` keyword was never declared for those types either). The same set is `v2EditUnsupported`
+for PATCH. Only pokemon, lure, raid, egg and pokestop events (incident) can carry it; fort has no `clean` at all.
+PoracleWeb.NET mirrors that set and refuses the bit itself rather than showing PoracleNG's raw 4xx text:
+`[NoCleanEditBit]` (`Core.Models/NoCleanEditBitAttribute.cs`) sits beside `[Range(0, 7)]` on `Clean` in the
+`*Create` and `*Update` DTOs of those five types, so the controller binding, a quick-pick clean override and a
+profile import (both validate the Create DTO) are all covered; `TrackingV2Translator`'s `EditSupported = false`
+is the backstop for any row built another way. It refuses 2, 3, 6 and 7 and leaves 0, 1, 4 and 5. Nothing in
+the SPA sends it: the edit dialogs `preserve` only the auto-delete (and, for quests, summary) bits and a v2 read
+reports no edit for those types, and `/api/cleaning` takes a 0/1 flag and PATCHes the `clean` boolean alone, so
+"clean all" never carries a mask. Keep the list in step with PoracleNG's `rejectEdit` callers. Verified live
+against a PoracleNG build carrying #246 (dev-01's "next" testbed, 2026-10-14, commit `4931758f`): a v2 pokemon
+PUT with `edit: true` returns 200 and round-trips `clean: 2` on the v1 read, and the identical PUT against gym
+is refused.
 
 ## Monster Filter Defaults Are Ours, Not PoracleNG's
 
