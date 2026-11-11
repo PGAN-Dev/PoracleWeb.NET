@@ -10,7 +10,7 @@ import { ToastService } from '../services/toast.service';
 describe('authGuard', () => {
   let authService: {
     isAuthenticated: jest.Mock;
-    retrySessionInBackground: jest.Mock;
+    noteSessionUnavailable: jest.Mock;
     sessionUnavailable: jest.Mock;
     waitForUserWithRetry: jest.Mock;
   };
@@ -34,7 +34,7 @@ describe('authGuard', () => {
   beforeEach(() => {
     authService = {
       isAuthenticated: jest.fn(),
-      retrySessionInBackground: jest.fn(),
+      noteSessionUnavailable: jest.fn().mockReturnValue(true),
       sessionUnavailable: jest.fn().mockReturnValue(false),
       waitForUserWithRetry: jest.fn(),
     };
@@ -103,6 +103,18 @@ describe('authGuard', () => {
     expect(result).toBe(true);
     expect(router.createUrlTree).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith('ERROR.SESSION_UNAVAILABLE');
-    expect(authService.retrySessionInBackground).toHaveBeenCalled();
+    expect(authService.noteSessionUnavailable).toHaveBeenCalled();
+  });
+
+  it('should toast only once per outage when a later guard run finds it already noted', async () => {
+    authService.isAuthenticated.mockReturnValue(true);
+    authService.waitForUserWithRetry.mockResolvedValue(null);
+    authService.sessionUnavailable.mockReturnValue(true);
+    authService.noteSessionUnavailable.mockReturnValue(false);
+
+    const result = await TestBed.runInInjectionContext(() => authGuard(mockRoute, mockState));
+
+    expect(result).toBe(true);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

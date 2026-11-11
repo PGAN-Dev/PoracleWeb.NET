@@ -389,6 +389,63 @@ describe('AuthService', () => {
       }
     });
 
+    it('noteSessionUnavailable should be true once per outage and keep one chain going past the third retry', async () => {
+      jest.useFakeTimers();
+      try {
+        localStorage.setItem('poracle_token', 'some-token');
+        const first = service.loadCurrentUser();
+        httpMock.expectOne(`${API}/api/auth/me`).flush(null, { status: 503, statusText: 'x' });
+        await first;
+
+        expect(service.noteSessionUnavailable()).toBe(true);
+        expect(service.noteSessionUnavailable()).toBe(false);
+
+        // 5 s, 15 s, 30 s, then 30 s again: four asks from one chain.
+        for (const wait of [5000, 15000, 30000, 30000]) {
+          await jest.advanceTimersByTimeAsync(wait);
+          httpMock.expectOne(`${API}/api/auth/me`).flush(null, { status: 503, statusText: 'x' });
+        }
+        await jest.advanceTimersByTimeAsync(0);
+        expect(service.sessionUnavailable()).toBe(true);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('a recovered load ends the outage so the next one notes again', async () => {
+      jest.useFakeTimers();
+      try {
+        localStorage.setItem('poracle_token', 'some-token');
+        const first = service.loadCurrentUser();
+        httpMock.expectOne(`${API}/api/auth/me`).flush(null, { status: 503, statusText: 'x' });
+        await first;
+        expect(service.noteSessionUnavailable()).toBe(true);
+
+        await jest.advanceTimersByTimeAsync(5000);
+        httpMock.expectOne(`${API}/api/auth/me`).flush(mockUser);
+        await jest.advanceTimersByTimeAsync(0);
+        expect(service.user()).toEqual(mockUser);
+
+        const again = service.loadCurrentUser();
+        httpMock.expectOne(`${API}/api/auth/me`).flush(null, { status: 429, statusText: 'x' });
+        await again;
+        expect(service.noteSessionUnavailable()).toBe(true);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('waitForUserWithRetry should answer at once when the outage is already noted', async () => {
+      localStorage.setItem('poracle_token', 'some-token');
+      const first = service.loadCurrentUser();
+      httpMock.expectOne(`${API}/api/auth/me`).flush(null, { status: 503, statusText: 'x' });
+      await first;
+      service.noteSessionUnavailable();
+
+      expect(await service.waitForUserWithRetry()).toBeNull();
+      httpMock.expectNone(`${API}/api/auth/me`);
+    });
+
     it('waitForUserWithRetry should not retry after a 401', async () => {
       localStorage.setItem('poracle_token', 'bad-token');
       const first = service.loadCurrentUser();

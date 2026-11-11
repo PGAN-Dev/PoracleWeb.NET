@@ -9,7 +9,7 @@ import { I18nService } from '../services/i18n.service';
 import { ToastService } from '../services/toast.service';
 
 describe('adminGuard', () => {
-  let authService: { waitForUserWithRetry: jest.Mock };
+  let authService: { isAuthenticated: jest.Mock; sessionUnavailable: jest.Mock; waitForUserWithRetry: jest.Mock };
   let router: { createUrlTree: jest.Mock; currentNavigation: jest.Mock };
   let toast: { error: jest.Mock };
   const mockRoute = {} as ActivatedRouteSnapshot;
@@ -30,7 +30,11 @@ describe('adminGuard', () => {
   const mockAdmin: UserInfo = { ...mockUser, isAdmin: true };
 
   beforeEach(() => {
-    authService = { waitForUserWithRetry: jest.fn() };
+    authService = {
+      isAuthenticated: jest.fn().mockReturnValue(true),
+      sessionUnavailable: jest.fn().mockReturnValue(false),
+      waitForUserWithRetry: jest.fn(),
+    };
     toast = { error: jest.fn() };
     router = {
       createUrlTree: jest.fn().mockReturnValue('dashboard-url-tree' as unknown as UrlTree),
@@ -102,5 +106,23 @@ describe('adminGuard', () => {
     expect(result).toBe('dashboard-url-tree');
     // No user means the sign-in failed or ended; the session's own messages cover that.
     expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('should stay on the route when the session is only unavailable', async () => {
+    authService.waitForUserWithRetry.mockResolvedValue(null);
+    authService.sessionUnavailable.mockReturnValue(true);
+
+    const result = await TestBed.runInInjectionContext(() => adminGuard(mockRoute, mockState));
+
+    expect(result).toBe(true);
+    expect(router.createUrlTree).not.toHaveBeenCalled();
+  });
+
+  it('should still redirect to the dashboard when there is no user and no outage', async () => {
+    authService.waitForUserWithRetry.mockResolvedValue(null);
+
+    const result = await TestBed.runInInjectionContext(() => adminGuard(mockRoute, mockState));
+
+    expect(result).toBe('dashboard-url-tree');
   });
 });

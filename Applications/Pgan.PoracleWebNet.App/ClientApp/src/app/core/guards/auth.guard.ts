@@ -19,8 +19,10 @@ export const authGuard: CanActivateFn = async () => {
     // /api/auth/me could not be answered (network error, 429, 5xx): that says nothing about the token, and
     // sending the member to the sign-in page for it was a bounce a reload undid. Only a 401 means signed out.
     if (auth.sessionUnavailable() && auth.isAuthenticated()) {
-      toast.error(i18n.instant('ERROR.SESSION_UNAVAILABLE'));
-      auth.retrySessionInBackground();
+      // One toast and one retry chain per outage, however many guards run during it.
+      if (auth.noteSessionUnavailable()) {
+        toast.error(i18n.instant('ERROR.SESSION_UNAVAILABLE'));
+      }
       return true;
     }
   }

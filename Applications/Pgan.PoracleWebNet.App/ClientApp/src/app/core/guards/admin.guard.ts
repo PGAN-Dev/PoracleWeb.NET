@@ -23,6 +23,12 @@ export const adminGuard: CanActivateFn = async () => {
   // A signed-in member (a webhook delegate following an admin's link, or an admin while viewing as
   // someone else) used to land on the dashboard with no word, and took the link for broken. With no
   // user the sign-in itself failed, and the session's own messages cover that.
+  if (!user && auth.sessionUnavailable() && auth.isAuthenticated()) {
+    // /api/auth/me could not be answered, so nobody knows whether this is an admin. Stay where the member
+    // asked to be; authGuard has already said so and owns the retrying. A real 401 never sets this.
+    return true;
+  }
+
   if (user && !returning) {
     toast.error(i18n.instant('ERROR.ADMIN_ONLY'));
   }

@@ -16,7 +16,7 @@ const ADMIN_TOKEN_KEY = 'poracle_admin_token';
 /** Pause before the guard's one retry of a `/api/auth/me` that could not be answered. */
 export const SESSION_RETRY_DELAY_MS = 1500;
 
-/** Pauses between the background retries that follow a guard that gave up waiting. */
+/** Pauses between the background retries that follow a guard that gave up waiting; the last one repeats. */
 const BACKGROUND_RETRY_DELAYS_MS = [5000, 15000, 30000];
 
 /**
@@ -55,7 +55,9 @@ export class AuthService {
   private readonly _destinationRefused = signal(false);
   private readonly _disabledAccountInfo = signal<{ supportUrl: string | null } | null>(null);
   private readonly _isImpersonating = signal(!!localStorage.getItem(ADMIN_TOKEN_KEY));
+  private _outageNoted = false;
   private readonly _profileResynced = signal(false);
+  private _retrying = false;
   private readonly _sessionUnavailable = signal(false);
   private readonly alertLanguage = inject(AlertLanguageService);
   private readonly config = inject(ConfigService);
@@ -119,7 +121,7 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
-    this._sessionUnavailable.set(false);
+    this.markAvailable();
     this.currentUser.set(null);
     this.userLoaded$.next(null);
   }
@@ -220,7 +222,7 @@ export class AuthService {
             resolve(null);
             return;
           }
-          this._sessionUnavailable.set(false);
+          this.markAvailable();
           if (err.status === 401) {
             // Only the user object. The interceptor owns what happens to the tokens on a 401 -- either
             // ending the session, which empties this via sessionCleared$, or the impersonation fallback
@@ -234,7 +236,7 @@ export class AuthService {
           resolve(null);
         },
         next: user => {
-          this._sessionUnavailable.set(false);
+          this.markAvailable();
           // Handle JWT profile resync — when PoracleNG changes the active profile
           // out-of-band (active_hours scheduler, bot commands), the backend detects
           // the mismatch and returns a refreshed token with the correct profileNo.
@@ -299,18 +301,16 @@ export class AuthService {
   }
 
   /**
-   * Keeps asking `/api/auth/me` after a guard gave up waiting, so the signed-in shell appears once the
-   * server answers. Stops on the first answer of any kind (a 401 is an answer) and after the last pause.
+   * Called by a guard that is letting the member stay on their page while `/api/auth/me` is unavailable.
+   * Returns true once per outage, for the caller to toast, and starts the one background retry chain; the
+   * chain asks at 5, 15 and 30 s and then every 30 s until the server answers (a 401 is an answer) or the
+   * token is gone, so the signed-in shell always comes back. Later calls in the same outage return false.
    */
-  retrySessionInBackground(): void {
-    const attempt = (index: number): void => {
-      if (index >= BACKGROUND_RETRY_DELAYS_MS.length) return;
-      setTimeout(() => {
-        if (!this._sessionUnavailable() || !this.isAuthenticated()) return;
-        void this.loadCurrentUser().then(() => attempt(index + 1));
-      }, BACKGROUND_RETRY_DELAYS_MS[index]);
-    };
-    attempt(0);
+  noteSessionUnavailable(): boolean {
+    if (this._outageNoted) return false;
+    this._outageNoted = true;
+    this.startBackgroundRetry();
+    return true;
   }
 
   /** Store a new JWT token (e.g. after profile switch). */
@@ -354,7 +354,9 @@ export class AuthService {
    */
   async waitForUserWithRetry(): Promise<UserInfo | null> {
     const user = await this.waitForUser();
-    if (user || !this._sessionUnavailable() || !this.isAuthenticated()) return user;
+    // Already waited once this outage: the background chain owns the retrying, so a second guard run
+    // answers at once instead of adding another 1.5 s.
+    if (user || !this._sessionUnavailable() || !this.isAuthenticated() || this._outageNoted) return user;
     await new Promise(resolve => setTimeout(resolve, SESSION_RETRY_DELAY_MS));
     return this.loadCurrentUser();
   }
@@ -365,5 +367,26 @@ export class AuthService {
     this.tokenStore.storeTokens(res.token, null);
     this.currentUser.set(res.user);
     this.userLoaded$.next(res.user);
+  }
+
+  private markAvailable(): void {
+    this._sessionUnavailable.set(false);
+    this._outageNoted = false;
+  }
+
+  private startBackgroundRetry(): void {
+    if (this._retrying) return;
+    this._retrying = true;
+    const attempt = (index: number): void => {
+      const delay = BACKGROUND_RETRY_DELAYS_MS[Math.min(index, BACKGROUND_RETRY_DELAYS_MS.length - 1)];
+      setTimeout(() => {
+        if (!this._sessionUnavailable() || !this.isAuthenticated()) {
+          this._retrying = false;
+          return;
+        }
+        void this.loadCurrentUser().then(() => attempt(index + 1));
+      }, delay);
+    };
+    attempt(0);
   }
 }
