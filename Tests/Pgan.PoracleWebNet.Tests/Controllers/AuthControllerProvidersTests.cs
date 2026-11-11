@@ -113,7 +113,7 @@ public class AuthControllerProvidersTests : ControllerTestBase
     [Fact]
     public async Task ProvidersTelegramConfiguredWhenEnabled()
     {
-        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotUsername = "testbot" });
+        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotToken = "123456:test-token", BotUsername = "testbot" });
 
         var result = await controller.Providers();
 
@@ -130,7 +130,7 @@ public class AuthControllerProvidersTests : ControllerTestBase
     {
         // The admin page has always offered this field and nothing ever read it. See #620.
         this._siteSettingService.Setup(s => s.GetValueAsync("telegram_bot")).ReturnsAsync("@uibot");
-        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotUsername = "" });
+        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotToken = "123456:test-token", BotUsername = "" });
 
         var result = await controller.Providers();
 
@@ -145,13 +145,26 @@ public class AuthControllerProvidersTests : ControllerTestBase
         // A working env var must not be overridden by whatever was typed into the UI while the field
         // was inert. See #620.
         this._siteSettingService.Setup(s => s.GetValueAsync("telegram_bot")).ReturnsAsync("staleuibot");
-        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotUsername = "envbot" });
+        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotToken = "123456:test-token", BotUsername = "envbot" });
 
         var result = await controller.Providers();
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var doc = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value));
         Assert.Equal("envbot", doc.RootElement.GetProperty("telegram").GetProperty("botUsername").GetString());
+    }
+
+    [Fact]
+    public async Task ProvidersTelegramNotConfiguredWhenEnabledWithoutABotToken()
+    {
+        // Enabled without a token cannot verify a login, so the button must not be offered.
+        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotUsername = "testbot" });
+
+        var result = await controller.Providers();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var doc = JsonDocument.Parse(JsonSerializer.Serialize(ok.Value));
+        Assert.False(doc.RootElement.GetProperty("telegram").GetProperty("configured").GetBoolean());
     }
 
     [Fact]
@@ -171,7 +184,7 @@ public class AuthControllerProvidersTests : ControllerTestBase
     public async Task ProvidersTelegramDisabledByAdminWhenSettingFalse()
     {
         this._siteSettingService.Setup(s => s.GetValueAsync("enable_telegram")).ReturnsAsync("false");
-        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotUsername = "bot" });
+        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotToken = "123456:test-token", BotUsername = "bot" });
 
         var result = await controller.Providers();
 
@@ -187,7 +200,7 @@ public class AuthControllerProvidersTests : ControllerTestBase
     public async Task ProvidersTelegramEnabledByAdminWhenSettingAbsent()
     {
         this._siteSettingService.Setup(s => s.GetValueAsync("enable_telegram")).ReturnsAsync((string?)null);
-        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotUsername = "bot" });
+        var controller = this.CreateController(telegram: new TelegramSettings { Enabled = true, BotToken = "123456:test-token", BotUsername = "bot" });
 
         var result = await controller.Providers();
 
@@ -204,7 +217,7 @@ public class AuthControllerProvidersTests : ControllerTestBase
         this._siteSettingService.Setup(s => s.GetValueAsync(It.IsAny<string>())).ReturnsAsync((string?)null);
         var controller = this.CreateController(
             discord: new DiscordSettings { ClientId = "id", ClientSecret = "secret" },
-            telegram: new TelegramSettings { Enabled = true, BotUsername = "bot" });
+            telegram: new TelegramSettings { Enabled = true, BotToken = "123456:test-token", BotUsername = "bot" });
 
         var result = await controller.Providers();
 

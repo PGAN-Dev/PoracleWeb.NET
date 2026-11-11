@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Telegram sign-in and linking need the bot token, not just `TELEGRAM_ENABLED`.** The login widget's hash is checked with a key derived from the bot token, so with `TELEGRAM_ENABLED=true` and a blank `TELEGRAM_BOT_TOKEN` the key was derived from an empty string and a payload naming any Telegram id could be signed by anyone and accepted, at sign-in and when linking a Telegram account to a Discord one. The verifier now refuses a blank token outright, and sign-in, account linking, the provider list and the Telegram widget config all use the same "enabled and has a token" test the startup check and the configuration reference already describe, so a half-configured site shows no Telegram button rather than an unsafe one.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11
