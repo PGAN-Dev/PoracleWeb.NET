@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The docs say where PoracleNG 5.4.0 is now.** PoracleNG merged 5.4.0 to `main` on 10 November 2026 and rebuilt its `latest` image from it, so the compatibility page and the upgrade guide no longer say 5.4.0 exists only on `develop` or warn against `latest`. The compatibility matrix now has one supported row, 5.4.0 or newer from `main`, `latest` or `develop`, and the known-differences list gains the fort-change alarm for Power Spots only, which PoracleNG's API refuses by design and the web therefore doesn't show. The costume-names note says 5.4.0 serves translated names, which PoracleWeb.NET doesn't read yet.
+
 ## [3.7.0] - 2026-11-02
 
 ### Added
