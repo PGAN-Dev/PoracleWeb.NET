@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.0] - 2026-11-11
+
 ### Added
 
 - **Costume names in your language.** PoracleNG 5.4.0 serves its translated costume names (`GET /api/masterdata/costumes?locale=`), so the costume picker on Pokémon and raid alarms now asks PoracleNG in the display language and refetches on a language change, as species names already did. PoracleNG translates French as of 5.4.0 and answers English elsewhere; the "Unset" entry and any name PoracleNG leaves as a bare `costume_N` key are dropped. A PoracleNG that is unreachable or answers nothing usable falls back to the English WatWowMap names as before.
@@ -14,7 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **The docs say where PoracleNG 5.4.0 is now.** PoracleNG merged 5.4.0 to `main` on 10 November 2026 and rebuilt its `latest` image from it, so the compatibility page and the upgrade guide no longer say 5.4.0 exists only on `develop` or warn against `latest`. The compatibility matrix now has one supported row, 5.4.0 or newer from `main`, `latest` or `develop`, and the known-differences list gains the fort-change alarm for Power Spots only, which PoracleNG's API refuses by design and the web therefore doesn't show. The costume-names note says 5.4.0 serves translated names, which PoracleWeb.NET doesn't read yet.
+- **The docs say where PoracleNG 5.4.0 is now.** PoracleNG merged 5.4.0 to `main` on 10 November 2026 and rebuilt its `latest` image from it, so the compatibility page and the upgrade guide no longer say 5.4.0 exists only on `develop` or warn against `latest`. The compatibility matrix now has one supported row, 5.4.0 or newer from `main`, `latest` or `develop`, and the known-differences list gains the fort-change alarm for Power Spots only, which PoracleNG's API refuses by design and the web therefore doesn't show. The costume-names note says 5.4.0 serves translated names and points at the picker that now reads them.
+
+### Dependencies
+- Bump jsdom in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#1142](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1142))
+- Bump the angular group ([#1141](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1141))
+- Bump tslib in /Applications/Pgan.PoracleWebNet.App/ClientApp ([#1143](https://github.com/PGAN-Dev/PoracleWeb.NET/pull/1143))
 
 ## [3.7.0] - 2026-11-02
 
@@ -1549,7 +1556,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.7.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.8.0...HEAD
+[3.8.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.6.0...v3.7.0
 [3.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...v3.6.0
 [3.5.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.4.0...v3.5.0
