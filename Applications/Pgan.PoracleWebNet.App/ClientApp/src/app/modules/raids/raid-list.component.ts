@@ -31,6 +31,7 @@ import { AlarmMoreMenuComponent } from '../../shared/components/alarm-more-menu/
 import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { EditDefaultTagComponent } from '../../shared/components/edit-default-tag/edit-default-tag.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { RsvpPillComponent } from '../../shared/components/rsvp-pill/rsvp-pill.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
@@ -63,6 +64,7 @@ import { serverReason } from '../../shared/utils/server-reason';
     AlarmListToolbarComponent,
     AlarmMoreMenuComponent,
     BulkActionBarComponent,
+    EditDefaultTagComponent,
     QuietChipComponent,
     MatButtonModule,
     MatIconModule,

@@ -46,6 +46,7 @@
           <div class="message-option">
             <mat-slide-toggle [formControl]="form.controls.editInPlace"> {{ 'LURES.EDIT_MODE' | translate }} </mat-slide-toggle>
             <p class="clean-hint">{{ 'LURES.EDIT_HINT' | translate }}</p>
+            <app-edit-default-tag appearance="hint" type="lure" />
           </div>
         </div>
         @if (showMention) {

@@ -186,7 +186,7 @@ To turn it on, set `GOLBAT_API_ADDRESS` (the Golbat API's URL, for example `http
 Alarms are displayed as a card grid, and every alarm type uses the same card:
 
 - the subject large at the top: the Pokémon sprite, raid boss or egg, quest reward, grunt, lure, team or event, with its name
-- on the right of the subject, the rule's status: clean, edit in place, daily summary, RSVP, and on the types that name a subject a [quiet chip](quiet-periods.md)
+- on the right of the subject, the rule's status: clean, edit in place (or "Edits in place (server default)" when the [server edits that type anyway](#edits-the-server-decides)), daily summary, RSVP, and on the types that name a subject a [quiet chip](quiet-periods.md)
 - one line of filters, each just the value ("IV 90-100%", "L30-55", "XXL", "Valor")
 - on gym, raid and egg cards, the name of the targeted gym when one was picked
 - the scope chip, saying where the alert reaches you, beside the test, edit and delete actions; click the chip to [change the scope from the card](#changing-scope-from-a-card)
@@ -327,9 +327,11 @@ for a rule that names a boss. A by-level raid rule is always "any costume": Pora
 to the wildcard on those, so there is no species for a costume to belong to. Eggs have no costume
 column at all.
 
-Costume names come from the WatWowMap masterfile — the same file PoracleNG reads for its own costume
-lookups — and are **English in every interface language**. A costume too new for that file shows as its
-number rather than a name. See [Game data names](internationalization.md#game-data-names).
+Costume names come from PoracleNG, in the interface language where PoracleNG has a translation and in
+English where it doesn't (as of 5.4.0 that is French translated, everything else English). When PoracleNG
+can't answer, the names fall back to the WatWowMap masterfile it reads itself, which is English only. A
+costume too new for either shows as its number rather than a name. See
+[Game data names](internationalization.md#game-data-names).
 
 !!! note "Always offered"
     The costume column exists in every supported PoracleNG (database migrations 6 for `monsters.costume`
@@ -641,6 +643,20 @@ Every alarm carries a `clean` field that PoracleNG reads as a **bitmask** contro
 The modes combine (a quest can be both auto-delete and daily-summary, for example). PoracleWeb.NET **preserves any bits set elsewhere**: if you configured a delivery mode via the bot's `!command` interface that isn't surfaced in the web UI, editing the alarm in the browser will not wipe it.
 
 ![Pokemon alarm dialog, Delivery tab, with Clean mode and Edit message in place both turned on](../screenshots/pokemon-add-dialog-delivery.png){ loading=lazy }
+
+#### Edits the server decides
+
+PoracleNG 5.4.0 lets the operator list alert types that edit the original alert in place whatever the
+rule says (`[tracking] default_edit`; the supported types are pokemon, raid, egg, lure and incident).
+The stored rule is left alone, so a rule without the edit bit still edits while its type is listed, and
+goes back to fresh messages when it is taken off the list. PoracleWeb.NET reads the list from PoracleNG
+and shows it rather than pretending the bit is the whole story: a card for a listed type whose rule
+has no edit bit carries an **"Edits in place (server default)"** tag, and the Pokemon and lure dialogs
+say under the toggle that it makes no difference while the server default stays on. A rule that does
+carry the bit shows the ordinary "Edits in place" tag alone. For Pokemon the tag follows
+`tracking.pokemon_edit` too: with that off PoracleNG sends no Pokemon edit at all, listed or not, so
+nothing is shown. Raids and eggs get only the tag, since their edit bit comes from the RSVP mode rather
+than a toggle. A PoracleNG that publishes no list, or an empty one, changes nothing.
 
 ![The Cleaning page with auto-delete on for every lure alarm and off for the other types](../screenshots/cleaning.png){ loading=lazy }
 

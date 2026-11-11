@@ -333,6 +333,7 @@
             <div class="message-option">
               <mat-slide-toggle [formControl]="notifForm.controls.editInPlace"> {{ 'POKEMON.EDIT_MODE' | translate }} </mat-slide-toggle>
               <p class="clean-hint">{{ 'POKEMON.EDIT_HINT' | translate }}</p>
+              <app-edit-default-tag appearance="hint" type="pokemon" />
             </div>
           }
         </div>

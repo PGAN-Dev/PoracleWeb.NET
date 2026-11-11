@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Costume names in your language.** PoracleNG 5.4.0 serves its translated costume names (`GET /api/masterdata/costumes?locale=`), so the costume picker on Pokémon and raid alarms now asks PoracleNG in the display language and refetches on a language change, as species names already did. PoracleNG translates French as of 5.4.0 and answers English elsewhere; the "Unset" entry and any name PoracleNG leaves as a bare `costume_N` key are dropped. A PoracleNG that is unreachable or answers nothing usable falls back to the English WatWowMap names as before.
+- **Edits the server decides are shown.** PoracleNG 5.4.0's `[tracking] default_edit` edits the original alert in place for whole alert types (pokemon, raid, egg, lure, incident) whatever the rule says, and leaves the stored rule alone, so a card reading only the rule's edit bit showed fresh-message behaviour the member wasn't getting. PoracleWeb.NET now reads the list from PoracleNG's config and shows an "Edits in place (server default)" tag on Pokémon, raid, egg, lure and Pokéstop event cards whose type is listed and whose rule has no edit bit; the Pokémon and lure dialogs say under the toggle that it makes no difference while the default stays on. Pokémon follow `tracking.pokemon_edit` too: with it off nothing is shown, because PoracleNG sends no Pokémon edit at all. The alarms, internationalization and PoracleNG compatibility docs and the in-app help, in all 11 languages, describe both.
+
 ## [3.7.0] - 2026-11-02
 
 ### Added

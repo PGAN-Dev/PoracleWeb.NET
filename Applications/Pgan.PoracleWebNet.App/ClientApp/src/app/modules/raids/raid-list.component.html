@@ -103,6 +103,7 @@
                 >
               }
               <app-rsvp-pill [value]="raid.rsvpChanges" />
+              <app-edit-default-tag type="raid" [clean]="raid.clean" />
               <!-- The gym, not the raid rule: quieting a gym silences every raid and egg alert there. -->
               @if (raid.gymId; as gymId) {
                 <app-quiet-chip scope="gym" [value]="gymId" [subject]="gymNames()[gymId]" />
@@ -201,6 +202,7 @@
                 >
               }
               <app-rsvp-pill [value]="egg.rsvpChanges" />
+              <app-edit-default-tag type="egg" [clean]="egg.clean" />
               @if (egg.gymId; as eggGymId) {
                 <app-quiet-chip scope="gym" [value]="eggGymId" [subject]="gymNames()[eggGymId]" />
               }

@@ -22,6 +22,7 @@ import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
+import { EditDefaultTagComponent } from '../../shared/components/edit-default-tag/edit-default-tag.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
@@ -39,6 +40,7 @@ interface LureOption {
 @Component({
   imports: [
     DeliverToFieldComponent,
+    EditDefaultTagComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,

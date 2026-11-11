@@ -112,10 +112,13 @@ There is deliberately no central registry. A registry was written and abandoned,
 shape already existed and two mechanisms answering one question is how one of them ends up being the one
 nobody updates.
 
-Costume names are the awkward one. PoracleNG loads them into its game data under `costume_{id}` keys
-but publishes them nowhere (`/api/masterdata/` offers only `monsters` and `grunts`), so the costume
-picker reads the same WatWowMap masterfile PoracleNG itself reads. The names are therefore English in
-every language, and a costume too new for that file shows as its number.
+Costume names come from PoracleNG's `/api/masterdata/costumes?locale=`, which 5.4.0 added beside
+`monsters` and `grunts`. PoracleWeb.NET reads it for the interface language, drops the "Unset" entry
+(the picker has its own "no costume" choice) and any name PoracleNG left as a bare `costume_{id}` key,
+and hands the SPA the same id-to-name map it always had. A language PoracleNG has no costume strings for
+comes back English from it. When PoracleNG is unreachable or answers nothing usable, the names fall back
+to the raw WatWowMap masterfile PoracleNG itself downloads, so a costume too new for either shows as its
+number.
 
 `TrackingFieldPreserver` carries forward every stored field PoracleWeb.NET has no model for on an edit,
 and bulk distance and cleaning send only the field they change, so a field set with the bot survives a web

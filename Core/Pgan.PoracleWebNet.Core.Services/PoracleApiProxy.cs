@@ -138,6 +138,18 @@ public class PoracleApiProxy(
             config.MaxAreas = maxAreas.GetInt32();
         }
 
+        if (root.TryGetProperty("defaultEdit", out var defaultEdit) && defaultEdit.ValueKind == JsonValueKind.Array)
+        {
+            // Absent, empty and malformed all mean the same thing here: no type edits by default.
+            foreach (var type in defaultEdit.EnumerateArray())
+            {
+                if (type.ValueKind == JsonValueKind.String && type.GetString() is { Length: > 0 } name)
+                {
+                    config.DefaultEdit.Add(name);
+                }
+            }
+        }
+
         if (root.TryGetProperty("disabledHooks", out var disabledHooks) && disabledHooks.ValueKind == JsonValueKind.Array)
         {
             // Absent (older Poracle, PoracleJS) stays null so callers can tell "upstream has no
@@ -359,6 +371,26 @@ public class PoracleApiProxy(
     /// Localized monster master data from <c>/api/masterdata/monsters</c>. Older PoracleJS builds do
     /// not serve this route, so a 404 is a normal outcome and yields <c>null</c> rather than throwing.
     /// </summary>
+    /// <summary>
+    /// <c>GET /api/masterdata/costumes?locale=</c>, a 5.4.0 route (jfberry/PoracleNG#217): an object keyed by
+    /// costume id whose values are <c>{id, name}</c>, the name translated where PoracleNG's locale bundle has it
+    /// and the raw masterfile's English otherwise. A server without the route answers 404, which yields
+    /// <c>null</c> rather than throwing, as for monsters.
+    /// </summary>
+    public async Task<string?> GetCostumesAsync(string locale)
+    {
+        var request = this.CreateRequest(HttpMethod.Get,
+            $"{this._apiAddress}/api/masterdata/costumes?locale={Uri.EscapeDataString(locale)}");
+        var response = await this._httpClient.SendAsync(request);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        return await response.Content.ReadAsStringAsync();
+    }
+
     public async Task<string?> GetMonstersAsync(string locale)
     {
         var request = this.CreateRequest(HttpMethod.Get,

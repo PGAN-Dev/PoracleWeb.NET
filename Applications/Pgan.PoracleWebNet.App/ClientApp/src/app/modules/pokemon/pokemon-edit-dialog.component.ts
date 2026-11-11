@@ -23,6 +23,7 @@ import { MasterDataService } from '../../core/services/masterdata.service';
 import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
+import { EditDefaultTagComponent } from '../../shared/components/edit-default-tag/edit-default-tag.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
@@ -37,6 +38,7 @@ import { MINIOR_POKEMON_ID } from '../../shared/utils/minior';
 @Component({
   imports: [
     DeliverToFieldComponent,
+    EditDefaultTagComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
