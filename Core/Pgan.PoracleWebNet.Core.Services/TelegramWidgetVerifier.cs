@@ -4,8 +4,9 @@ using System.Text;
 namespace Pgan.PoracleWebNet.Core.Services;
 
 /// <summary>
-/// Outcome of checking a Telegram login-widget payload. <c>Failure</c> is missing_fields (no id or hash), bad_id (an id
-/// that is not a number), bad_auth_date (missing, not a number, or in the future), expired or bad_hash.
+/// Outcome of checking a Telegram login-widget payload. <c>Failure</c> is not_configured (no bot token to check
+/// against), missing_fields (no id or hash), bad_id (an id that is not a number), bad_auth_date (missing, not a
+/// number, or in the future), expired or bad_hash.
 /// </summary>
 public sealed record TelegramWidgetResult(bool Valid, string? Failure, long UserId, string Name);
 
@@ -22,6 +23,13 @@ public static class TelegramWidgetVerifier
 
     public static TelegramWidgetResult Verify(IReadOnlyDictionary<string, string> data, string botToken, TimeSpan maxAge, DateTimeOffset now)
     {
+        // The HMAC key is SHA256(token). With a blank token that key is public knowledge, so every payload
+        // anyone cares to sign would pass and any Telegram id could be claimed. Refuse before looking at the data.
+        if (string.IsNullOrWhiteSpace(botToken))
+        {
+            return Fail("not_configured");
+        }
+
         if (!data.TryGetValue("id", out var idText) || !data.TryGetValue("hash", out var hash))
         {
             return Fail("missing_fields");
