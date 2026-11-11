@@ -568,7 +568,7 @@ export class ProfileOverviewComponent implements OnInit {
       case 'nest':
         return `nest:${alarm.pokemon_id ?? 0}`;
       case 'gym':
-        return `gym:${alarm.gym_id ?? ''}:${alarm.team ?? 0}`;
+        return `gym:${alarm.gym_id ?? ''}:${alarm.team ?? 0}:${alarm.slot_changes ?? 0}:${alarm.battle_changes ?? 0}`;
       case 'maxbattle':
         return `maxbattle:${alarm.pokemon_id ?? 0}:${alarm.level ?? 0}`;
       case 'fort':

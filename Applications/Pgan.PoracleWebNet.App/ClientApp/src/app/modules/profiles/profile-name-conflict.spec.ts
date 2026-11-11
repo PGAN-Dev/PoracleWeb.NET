@@ -21,7 +21,7 @@ describe('profile name dialogs show a name clash', () => {
     { name: 'Work', profileNo: 2 },
   ];
 
-  const setup = <T>(component: Type<T>, service: Record<string, jest.Mock> = {}) => {
+  const setup = <T>(component: Type<T>, service: Record<string, jest.Mock> = {}, data = { name: 'Work', profileNo: 2 }) => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -29,7 +29,7 @@ describe('profile name dialogs show a name clash', () => {
         provideTranslateService(),
         { provide: ProfileService, useValue: { getAll: jest.fn(() => of(profiles)), ...service } },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
-        { provide: MAT_DIALOG_DATA, useValue: { name: 'Work', profileNo: 2 } },
+        { provide: MAT_DIALOG_DATA, useValue: data },
       ],
       imports: [component],
     });
@@ -75,6 +75,21 @@ describe('profile name dialogs show a name clash', () => {
       expect(fixture.nativeElement.textContent).toContain('7/32');
       expect(saveButton(fixture).disabled).toBe(false);
     });
+  });
+
+  it('edit: a legacy duplicate name does not open the dialog in the taken state', async () => {
+    const twins = [
+      { name: 'Home', profileNo: 1 },
+      { name: 'Home', profileNo: 2 },
+    ];
+    const fixture = setup(ProfileEditDialogComponent, { getAll: jest.fn(() => of(twins)), update: jest.fn() }, twins[1]);
+    await type(fixture, 'Home');
+
+    expect(fixture.nativeElement.querySelector('.name-conflict')).toBeNull();
+    expect(saveButton(fixture).disabled).toBe(false);
+
+    await type(fixture, 'Work');
+    expect(fixture.nativeElement.querySelector('.name-conflict')).toBeNull();
   });
 
   it("edit: keeping the profile's own name is not a clash", async () => {

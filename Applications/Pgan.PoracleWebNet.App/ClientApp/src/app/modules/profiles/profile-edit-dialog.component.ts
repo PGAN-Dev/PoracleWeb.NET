@@ -56,7 +56,11 @@ export class ProfileEditDialogComponent {
 
   /** Checked as the user types so Save turns off before the click, rather than the click silently doing nothing. */
   hasNameConflict(): boolean {
-    const name = this.profileName.trim().toLowerCase();
+    const typed = this.profileName.trim();
+    // The profile's own unchanged name is never a clash, even when a legacy twin carries it too: only a
+    // changed name that matches another profile is.
+    if (typed === (this.data.name ?? '').trim()) return false;
+    const name = typed.toLowerCase();
     return name.length > 0 && this.existingNames().has(name);
   }
 

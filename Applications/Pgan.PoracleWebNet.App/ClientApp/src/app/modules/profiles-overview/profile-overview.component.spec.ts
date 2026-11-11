@@ -166,6 +166,22 @@ describe('ProfileOverviewComponent duplicate detection', () => {
    * v1 shape held them. The Dashboard and the nav count them apart from invasions, so the overview did
    * the same only after this split.
    */
+  describe('gym rules', () => {
+    const gym = (uid: number, extra: Record<string, unknown>) => ({ gym_id: '', uid, distance: 0, profile_no: 1, team: 4, ...extra });
+
+    it('tells an Any-team rule with slot changes from one without', () => {
+      component.overview.set(overview({ gym: [gym(1, {}), gym(2, { slot_changes: 1 })] }));
+
+      expect(component.duplicateKeys().size).toBe(0);
+    });
+
+    it('still calls two identical gym rules duplicates', () => {
+      component.overview.set(overview({ gym: [gym(1, { slot_changes: 1 }), gym(2, { slot_changes: 1 })] }));
+
+      expect(component.duplicateKeys().size).toBe(2);
+    });
+  });
+
   describe('Pokéstop events', () => {
     const invasion = (uid: number, gruntType: string) => ({ uid, distance: 0, grunt_type: gruntType, profile_no: 1 });
 

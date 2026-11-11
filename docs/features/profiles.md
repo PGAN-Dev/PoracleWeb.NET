@@ -26,7 +26,7 @@ Rules are named the way their own pages name them ("All Legendary raids", "3 sta
 
 !!! note "Pokéstop Event rules have their own row"
     Showcase, Kecleon and Gold Stop rules get a **Pokéstop Events** row and chip, apart from Invasions, as on the Dashboard. PoracleNG sends them in the same list as invasions, so this page splits that list in two. **Export** folds them back into the invasion
-    list, which is where **Import** reads them, **Import** saves them back as Pokéstop Event rules, and **Duplicate** copies them
+    list, **Import** saves them back as Pokéstop Event rules, and **Duplicate** copies them
     with the rest. Manage them from the [Pokéstop Events page](alarms.md#pokestop-event-alarms).
 
 ## Creating & Switching Profiles
