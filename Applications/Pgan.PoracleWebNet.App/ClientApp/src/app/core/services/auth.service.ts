@@ -282,6 +282,9 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
+    // An outage noted for this session must not silence the next one: a sign-in during an outage that
+    // follows a sign-out needs its own toast and retry chain.
+    this.markAvailable();
 
     if (options?.sso) {
       // The user stays: the browser is leaving for the provider, and forgetting the user first swapped the
