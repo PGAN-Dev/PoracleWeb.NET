@@ -40,7 +40,6 @@ export class ProfileEditDialogComponent {
   readonly dialogRef = inject(MatDialogRef<ProfileEditDialogComponent>);
 
   existingNames = signal<Set<string>>(new Set());
-  nameError = signal('');
   profileName = this.data.name;
   readonly saving = signal(false);
 
@@ -55,15 +54,21 @@ export class ProfileEditDialogComponent {
       });
   }
 
+  /** Checked as the user types so Save turns off before the click, rather than the click silently doing nothing. */
+  hasNameConflict(): boolean {
+    const typed = this.profileName.trim();
+    // The profile's own unchanged name is never a clash, even when a legacy twin carries it too: only a
+    // changed name that matches another profile is.
+    if (typed === (this.data.name ?? '').trim()) return false;
+    const name = typed.toLowerCase();
+    return name.length > 0 && this.existingNames().has(name);
+  }
+
   save(): void {
     const name = this.profileName.trim();
     if (!name) return;
 
-    if (this.existingNames().has(name.toLowerCase())) {
-      this.nameError.set(this.i18n.instant('DIALOG.PROMPT_CONFLICT'));
-      return;
-    }
-    this.nameError.set('');
+    if (this.hasNameConflict()) return;
 
     this.saving.set(true);
     this.profileService.update(this.data.profileNo, name).subscribe({

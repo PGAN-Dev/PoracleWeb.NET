@@ -44,7 +44,7 @@ import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete as cleanIsAutoDelete, isEdit as cleanIsEdit } from '../../shared/utils/clean-flags';
 import { readableChip } from '../../shared/utils/contrast';
 import { NO_COSTUME } from '../../shared/utils/costumes';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny, skippedNames } from '../../shared/utils/distance-update';
 import { minTimePillLabel } from '../../shared/utils/min-time';
 import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 import { RuleEdge, speciesEdge } from '../../shared/utils/rule-colours';
@@ -278,7 +278,12 @@ export class PokemonListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadMonsters();
       this.snackBar.open(
-        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
+        distanceUpdateMessage(
+          result,
+          this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length),
+          this.i18n,
+          skippedNames(result?.skippedConflict, this.monsters(), i => this.getPokemonName(i.pokemonId)),
+        ),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,

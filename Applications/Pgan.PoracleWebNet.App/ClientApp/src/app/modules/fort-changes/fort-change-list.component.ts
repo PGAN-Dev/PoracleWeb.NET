@@ -40,8 +40,9 @@ import {
 } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { fortTypeName } from '../../shared/utils/alarm-titles';
 import { runBulkMove } from '../../shared/utils/bulk-move';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny, skippedNames } from '../../shared/utils/distance-update';
 import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
@@ -194,7 +195,12 @@ export class FortChangeListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadItems();
       this.snackBar.open(
-        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
+        distanceUpdateMessage(
+          result,
+          this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length),
+          this.i18n,
+          skippedNames(result?.skippedConflict, this.fortChanges(), i => this.formatFortType(i.fortType)),
+        ),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,
@@ -320,14 +326,7 @@ export class FortChangeListComponent implements OnInit {
   }
 
   formatFortType(type: string | null): string {
-    switch (type) {
-      case 'pokestop':
-        return this.i18n.instant('FORT_CHANGES.FORT_POKESTOP');
-      case 'gym':
-        return this.i18n.instant('FORT_CHANGES.FORT_GYM');
-      default:
-        return this.i18n.instant('FORT_CHANGES.FORT_EVERYTHING');
-    }
+    return fortTypeName(type, (key, params) => this.i18n.instant(key, params));
   }
 
   loadItems(): void {

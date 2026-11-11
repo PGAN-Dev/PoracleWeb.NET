@@ -320,6 +320,19 @@
                               <span class="filter-pill team-pill">{{ key | translate }}</span>
                             }
                           }
+                          <!-- Gym change pills, worded as the Gyms page words them -->
+                          @if (type.key === 'gym') {
+                            @if (alarm.slot_changes === 1) {
+                              <span class="filter-pill">{{ 'GYMS.SLOT_CHANGES_PILL' | translate }}</span>
+                            }
+                            @if (alarm.battle_changes === 1) {
+                              <span class="filter-pill">{{ 'GYMS.BATTLE_CHANGES_PILL' | translate }}</span>
+                            }
+                          }
+                          <!-- Max battle tier: the title is the Pokemon, so the tier rides as a pill -->
+                          @if (type.key === 'maxbattle' && alarm.level && alarm.level !== 9000) {
+                            <span class="filter-pill level-pill">{{ getMaxBattleLevelLabel(alarm.level) }}</span>
+                          }
                           <!-- Quest pills -->
                           @if (type.key === 'quest') {
                             @if (alarm.shiny === 1) {

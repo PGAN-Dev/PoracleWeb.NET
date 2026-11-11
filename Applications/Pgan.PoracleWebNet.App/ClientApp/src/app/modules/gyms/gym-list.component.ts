@@ -44,8 +44,9 @@ import {
 } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { gymTeamName } from '../../shared/utils/alarm-titles';
 import { runBulkMove } from '../../shared/utils/bulk-move';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny, skippedNames } from '../../shared/utils/distance-update';
 import { teamEdge } from '../../shared/utils/rule-colours';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -207,7 +208,12 @@ export class GymListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadGyms();
       this.snackBar.open(
-        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
+        distanceUpdateMessage(
+          result,
+          this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length),
+          this.i18n,
+          skippedNames(result?.skippedConflict, this.gyms(), i => this.getTeamName(i.team)),
+        ),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,
@@ -316,21 +322,7 @@ export class GymListComponent implements OnInit {
   }
 
   getTeamName(team: number): string {
-    switch (team) {
-      case 0:
-        return this.i18n.instant('GYMS.TEAM_NEUTRAL');
-      case 1:
-        return this.i18n.instant('GYMS.TEAM_MYSTIC');
-      case 2:
-        return this.i18n.instant('GYMS.TEAM_VALOR');
-      case 3:
-        return this.i18n.instant('GYMS.TEAM_INSTINCT');
-      case 4:
-        // "Any team": the same words raids and eggs use for this value.
-        return this.i18n.instant('RAIDS.TEAM_ANY');
-      default:
-        return this.i18n.instant('GYMS.TEAM_UNKNOWN', { id: team });
-    }
+    return gymTeamName(team, (key, params) => this.i18n.instant(key, params));
   }
 
   /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */

@@ -12,7 +12,6 @@ import { firstValueFrom, forkJoin } from 'rxjs';
 import { RaidAddDialogComponent } from './raid-add-dialog.component';
 import { RaidEditDialogComponent, RaidEditDialogData } from './raid-edit-dialog.component';
 import { Raid, Egg, LinkSide } from '../../core/models';
-import { resolveLevel } from '../../core/models/raid-level.models';
 import { AlarmMoveService } from '../../core/services/alarm-move.service';
 import { AreaNameService } from '../../core/services/area-name.service';
 import { AreaService } from '../../core/services/area.service';
@@ -50,9 +49,16 @@ import {
 } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { eggTitle, raidLevelName, raidTitle } from '../../shared/utils/alarm-titles';
 import { runBulkMove } from '../../shared/utils/bulk-move';
 import { NO_COSTUME } from '../../shared/utils/costumes';
-import { combineDistanceResults, distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import {
+  combineDistanceResults,
+  distanceUpdateMessage,
+  DistanceUpdateResult,
+  skippedAny,
+  skippedNames,
+} from '../../shared/utils/distance-update';
 import { teamEdge, tierEdge } from '../../shared/utils/rule-colours';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -269,11 +275,18 @@ export class RaidListComponent implements OnInit {
         return;
       }
       const result = combineDistanceResults(raids, eggs);
+      const raidsBefore = this.raids();
+      const eggsBefore = this.eggs();
       this.selectedIds.set(new Set());
       this.selectMode.set(false);
       this.loadData();
       this.snackBar.open(
-        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? keys.length), this.i18n),
+        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? keys.length), this.i18n, [
+          ...skippedNames(raids?.skippedConflict, raidsBefore, r => this.getRaidTitle(r)),
+          ...skippedNames(eggs?.skippedConflict, eggsBefore, e =>
+            eggTitle(e.level, key => this.i18n.instant(key), this.raidLevelService.byValue()),
+          ),
+        ]),
         this.i18n.instant('TOAST.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,
@@ -460,25 +473,18 @@ export class RaidListComponent implements OnInit {
   }
 
   getRaidLevelName(level: number): string {
-    // Prefer the live raid-level list — when the API extends the canonical
-    // set (e.g. raid_20 ships in the masterfile), cards stay in sync with the
-    // selector dialog. Falls back to the baked-in resolveLevel + custom shape
-    // when the API hasn't loaded yet or the level is genuinely unknown.
-    const liveOpt = this.raidLevelService.byValue().get(level);
-    const opt = liveOpt ?? resolveLevel(level);
-    if (opt.category === 'custom') {
-      return this.i18n.instant(opt.labelKey) + ' ' + opt.value;
-    }
-    return this.i18n.instant(opt.labelKey);
+    // Prefer the live raid-level list: when the API extends the canonical set (e.g. raid_20 ships in the
+    // masterfile), cards stay in sync with the selector dialog.
+    return raidLevelName(level, key => this.i18n.instant(key), this.raidLevelService.byValue());
   }
 
   getRaidTitle(raid: Raid): string {
-    if (raid.pokemonId && raid.pokemonId !== 9000) {
-      return this.masterData.getPokemonName(raid.pokemonId);
-    }
-    return raid.level === 9000
-      ? this.i18n.instant('RAIDS.ALL_RAIDS')
-      : this.i18n.instant('RAIDS.ALL_LEVEL_RAIDS', { level: this.getRaidLevelName(raid.level) });
+    return raidTitle(
+      raid,
+      (key, params) => this.i18n.instant(key, params),
+      { itemName: () => '', pokemonName: id => this.masterData.getPokemonName(id) },
+      this.raidLevelService.byValue(),
+    );
   }
 
   getTeamName(team: number): string {
