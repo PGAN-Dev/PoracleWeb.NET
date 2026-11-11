@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A profile import or quick-pick apply can no longer slip past `max_distance` on a row that sits beside an override-area row.** A batch that names an override area goes to PoracleNG as one trusted write, and PoracleNG skips its `[tracking] max_distance` clamp for every row in it, so a second row with a radius over the limit was stored as asked. PoracleWeb.NET now caps each row's distance at the limit before sending a trusted batch, for tracking alarms and Pokéstop events alike; admins and other exempt accounts keep their radius, and a batch with no override area is still clamped by PoracleNG itself.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11
