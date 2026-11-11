@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The template picker follows Deliver to.** When your Discord and Telegram accounts are linked, the picker and its preview used the app you signed in with, so choosing Telegram as the destination still listed Discord templates and showed the Discord embed. The list and preview now follow the app the alarm is delivered to, in all twenty add and edit dialogs, and change when you change Deliver to; a selected template the new app doesn't have is replaced by that app's first one. Nothing changes if your accounts aren't linked.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

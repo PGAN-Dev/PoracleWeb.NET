@@ -158,4 +158,116 @@ describe('TemplateSelectorComponent', () => {
       expect(a?.getAttribute('href')).toBeNull();
     });
   });
+
+  describe('Deliver to side', () => {
+    const TG_TEXT = telegram({ content: '*tg {{cp}}*', parse_mode: 'Markdown' });
+    const listed: { side: unknown; type: string }[] = [];
+    let templatesBySide: Record<string, (number | string)[]>;
+
+    function setupSide(userType: string, side: 'discord' | 'telegram' | null, value = '1'): HTMLElement {
+      (TemplateSelectorComponent as unknown as { dtsCache: unknown }).dtsCache = null;
+      listed.length = 0;
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          provideTranslateService(),
+          { provide: AuthService, useValue: { user: signal({ type: userType }) } },
+          { provide: ConfigService, useValue: { apiHost: '' } },
+          { provide: SettingsService, useValue: { siteSettings: signal({ enable_templates: 'true' }) } },
+          {
+            provide: TemplateService,
+            useValue: {
+              getTemplatesForType: (type: string, s?: string) => {
+                listed.push({ side: s, type });
+                return of(templatesBySide[s ?? (userType.startsWith('telegram') ? 'telegram' : 'discord')] ?? []);
+              },
+            },
+          },
+          { provide: IconService, useValue: { getPokemonUrl: () => 'icon.png' } },
+        ],
+        imports: [TemplateSelectorComponent, NoopAnimationsModule],
+      });
+      fixture = TestBed.createComponent(TemplateSelectorComponent);
+      fixture.componentRef.setInput('side', side);
+      fixture.componentInstance.alarmType = 'monster';
+      fixture.componentInstance.value = value;
+      fixture.detectChanges();
+      TestBed.inject(HttpTestingController).expectOne('/api/config/dts').flush([DISCORD, TG_TEXT]);
+      fixture.detectChanges();
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    beforeEach(() => {
+      templatesBySide = { discord: [1, 2, 3], telegram: [1] };
+    });
+
+    it('lists and previews the Telegram side for a Discord-signed-in person who delivers to Telegram', () => {
+      const el = setupSide('discord:user', 'telegram');
+
+      expect(listed.at(-1)).toEqual({ side: 'telegram', type: 'monster' });
+      expect(el.querySelector('.telegram-bubble')).not.toBeNull();
+      expect(el.querySelector('.discord-embed')).toBeNull();
+    });
+
+    it('lists and previews the Discord side for a Telegram-signed-in person who delivers to Discord', () => {
+      const el = setupSide('telegram:user', 'discord');
+
+      expect(el.querySelector('.discord-embed')).not.toBeNull();
+      expect(el.querySelector('.telegram-bubble')).toBeNull();
+    });
+
+    it('still follows the signed-in platform when no side is given', () => {
+      const dc = setupSide('discord:user', null);
+      expect(dc.querySelector('.discord-embed')).not.toBeNull();
+      expect(fixture.componentInstance.platform()).toBe('discord');
+
+      const tg = setupSide('telegram:user', null);
+      expect(tg.querySelector('.telegram-bubble')).not.toBeNull();
+      expect(fixture.componentInstance.platform()).toBe('telegram');
+    });
+
+    it('re-lists and re-previews when the side changes', () => {
+      const el = setupSide('discord:user', 'discord');
+      expect(el.querySelector('.discord-embed')).not.toBeNull();
+      expect(fixture.componentInstance.templates()).toEqual([1, 2, 3]);
+
+      fixture.componentRef.setInput('side', 'telegram');
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.templates()).toEqual([1]);
+      expect(el.querySelector('.telegram-bubble')).not.toBeNull();
+      expect(el.querySelector('.discord-embed')).toBeNull();
+    });
+
+    it('resets a selected template the new side does not have, as an empty value does', () => {
+      setupSide('discord:user', 'discord', '3');
+      const emitted: string[] = [];
+      fixture.componentInstance.valueChange.subscribe((v: string) => emitted.push(v));
+
+      fixture.componentRef.setInput('side', 'telegram');
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.value).toBe('1');
+      expect(emitted).toEqual(['1']);
+    });
+
+    it('keeps a selected template the new side also has', () => {
+      setupSide('discord:user', 'discord', '1');
+      const emitted: string[] = [];
+      fixture.componentInstance.valueChange.subscribe((v: string) => emitted.push(v));
+
+      fixture.componentRef.setInput('side', 'telegram');
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.value).toBe('1');
+      expect(emitted).toEqual([]);
+    });
+
+    it("does not rewrite an edit alarm's stored template on first load", () => {
+      setupSide('discord:user', 'discord', '99');
+      expect(fixture.componentInstance.value).toBe('99');
+    });
+  });
 });
