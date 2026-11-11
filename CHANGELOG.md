@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Saving an alarm no longer says it was moved to Discord.** An ordinary edit on an unlinked account showed "Moved to Discord, but the Telegram copy is still there" on every alarm type, although the alarm had simply been saved. The edit dialogs now show the usual "updated" message unless the alarm really moved apps.
+- **The invasion edit dialog explains fixed-gender grunts correctly.** Leaders such as Cliff said the gender filter does not apply to Pokéstop events; they now say the grunt type has a fixed gender. Events keep their own sentence, in all 11 languages.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

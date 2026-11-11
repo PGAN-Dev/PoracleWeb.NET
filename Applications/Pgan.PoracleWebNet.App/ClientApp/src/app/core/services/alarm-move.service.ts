@@ -227,6 +227,9 @@ export class AlarmMoveService {
     plain: () => Observable<void>,
     params?: Record<string, string>,
   ): Observable<MoveEdit | void> {
-    return body.destination ? this.edit(path, uid, body, body.destination, params) : plain();
+    return body.destination
+      ? this.edit(path, uid, body, body.destination, params)
+      : // The plain PUT answers 200 with the alarm JSON despite its `void` type; an ordinary save must hand on no move result.
+        plain().pipe(map(() => undefined));
   }
 }

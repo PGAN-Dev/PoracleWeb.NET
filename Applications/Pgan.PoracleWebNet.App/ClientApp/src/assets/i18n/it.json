@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Qualsiasi genere",
     "GENDER_LABEL": "Genere",
     "GENDER_FILTER_NA": "Il filtro di genere non si applica agli eventi PokéStop.",
+    "GENDER_FIXED_NA": "Il filtro di genere non si applica: questo tipo di recluta ha un genere fisso.",
     "UNKNOWN_GRUNT": "Recluta sconosciuta",
     "SNACK_ALL_CREATED": "Allarme per tutte le invasioni creato",
     "CONFIRM_DELETE_TITLE": "Elimina allarme invasione",

@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Beliebiges Geschlecht",
     "GENDER_LABEL": "Geschlecht",
     "GENDER_FILTER_NA": "Geschlechtsfilter gilt nicht für PokéStop-Events.",
+    "GENDER_FIXED_NA": "Der Geschlechtsfilter gilt hier nicht: Dieser Rocket-Typ hat ein festes Geschlecht.",
     "UNKNOWN_GRUNT": "Unbekannter Rüpel",
     "SNACK_ALL_CREATED": "Alarm für alle Invasionen erstellt",
     "CONFIRM_DELETE_TITLE": "Invasions-Alarm löschen",

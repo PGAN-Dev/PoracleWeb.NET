@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Tout genre",
     "GENDER_LABEL": "Genre",
     "GENDER_FILTER_NA": "Le filtre de genre ne s'applique pas aux événements PokéStop.",
+    "GENDER_FIXED_NA": "Le filtre de genre ne s'applique pas : ce type de sbire a un genre fixe.",
     "UNKNOWN_GRUNT": "Sbire inconnu",
     "SNACK_ALL_CREATED": "Alarme toutes invasions créée",
     "CONFIRM_DELETE_TITLE": "Supprimer l'alarme invasion",
