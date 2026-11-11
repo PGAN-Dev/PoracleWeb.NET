@@ -83,6 +83,31 @@ public class AlarmDistanceBoundTests : ControllerTestBase
     }
 
     [Fact]
+    public void ABulkRequestWithNoDistanceIsRefusedBeforeItBinds()
+    {
+        // A body with uids but no distance (or a misspelt key) used to bind Distance as 0 and switch every
+        // named alarm to area-based delivery. Missing is now a binding error, so [ApiController] answers 400.
+        var web = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<BulkDistanceRequest>("""{"uids":[37014]}""", web));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<BulkDistanceRequest>("""{"uids":[37014],"distanse":500}""", web));
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<BulkDistanceRequest>("""{"uids":[37014],"distance":null}""", web));
+    }
+
+    [Fact]
+    public void ABulkRequestThatNamesADistanceStillBindsIncludingZero()
+    {
+        var web = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        var cleared = JsonSerializer.Deserialize<BulkDistanceRequest>("""{"uids":[37014],"distance":0}""", web)!;
+        var set = JsonSerializer.Deserialize<BulkDistanceRequest>("""{"uids":[37014],"distance":500,"kind":"event"}""", web)!;
+
+        Assert.Equal(0, cleared.Distance);
+        Assert.Equal(500, set.Distance);
+        Assert.Equal("event", set.Kind);
+    }
+
+    [Fact]
     public async Task UpdateAllRefusesARadiusLargerThanTheEarth()
     {
         var service = new Mock<IMonsterService>();

@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Any gender",
     "GENDER_LABEL": "Gender",
     "GENDER_FILTER_NA": "Gender filter does not apply to Pokéstop events.",
+    "GENDER_FIXED_NA": "Gender filter does not apply: this grunt type has a fixed gender.",
     "UNKNOWN_GRUNT": "Unknown grunt",
     "SNACK_ALL_CREATED": "All invasions alarm created",
     "CONFIRM_DELETE_TITLE": "Delete invasion alarm",
@@ -1170,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Cleaning {{action}} for all types ({{count}} alarms updated)",
     "SNACK_TOGGLE_TYPE_ONE": "Cleaning {{action}} for {{type}} ({{count}} alarm updated)",
     "SNACK_TOGGLE_TYPE_OTHER": "Cleaning {{action}} for {{type}} ({{count}} alarms updated)",
+    "REFUSED_CONFLICT_ONE": "Skipped {{count}}: another alarm already uses those settings.",
+    "REFUSED_CONFLICT_OTHER": "Skipped {{count}}: another alarm already uses those settings.",
+    "REFUSED_OTHER_ONE": "Skipped {{count}}: the server wouldn't accept the change.",
+    "REFUSED_OTHER_OTHER": "Skipped {{count}}: the server wouldn't accept the change.",
     "ENABLED": "enabled",
     "DISABLED": "disabled"
   },
@@ -1530,6 +1535,7 @@
     "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "We couldn't reach the server just now. You're still signed in; we'll keep trying.",
     "ADMIN_ONLY": "That page is for admins.",
     "FEATURE_DISABLED": "This feature has been disabled by the administrator."
   },
@@ -1840,6 +1846,7 @@
     "LOCATION_LONGITUDE": "Longitude",
     "LOCATION_LATITUDE_RANGE": "Enter a latitude from -90 to 90.",
     "LOCATION_LONGITUDE_RANGE": "Enter a longitude from -180 to 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 is in the Gulf of Guinea, and PoracleNG reads it as no pin. Pick a real point, or use Clear on the Areas page to remove the pin.",
     "LOCATION_USE_MY": "Use my location",
     "LOCATION_GETTING": "Getting location...",
     "DISTANCE_TITLE_ONE": "Change the radius of {{count}} alarm",
@@ -1878,6 +1885,7 @@
     "CLOSE": "Close",
     "LOADING": "Loading...",
     "SAVING": "Saving...",
+    "WORKING": "Working...",
     "ALL": "All",
     "NONE": "None",
     "ANY": "Any",
@@ -2169,8 +2177,7 @@
     "UNSAVED_CHANGES": "{{count}} unsaved",
     "SAVE_CHANGES": "Save changes",
     "DISCARD_CHANGES": "Discard",
-    "COLLAPSE_SECTION": "Collapse section",
-    "EXPAND_SECTION": "Expand section",
+    "SECTION_TOGGLE": "{{section}} section",
     "SUMMARY_ENABLED": "{{count}} of {{total}} enabled",
     "DISABLE_UPDATE_CHECK_LABEL": "Check for updates",
     "DISABLE_UPDATE_CHECK_DESC": "Lets the site ask GitHub whether a newer PoracleWeb.NET or Poracle has been released. This is the only request it makes outside your own network; nothing is sent with it.",

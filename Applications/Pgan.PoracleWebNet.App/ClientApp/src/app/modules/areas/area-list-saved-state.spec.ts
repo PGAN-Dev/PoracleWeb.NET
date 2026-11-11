@@ -92,6 +92,41 @@ describe('AreaListComponent saved and unsaved selections', () => {
     expect(el.querySelector('.areas-status')?.textContent?.trim()).toBe('1 area active');
   });
 
+  // Navigating away from /areas with ticks that were never saved used to drop them without a word.
+  it('reports unsaved changes only while the ticks differ from what is saved', () => {
+    const { component, uptown } = setup();
+    expect(component.hasUnsavedChanges()).toBe(false);
+
+    component.toggleAreaDirect(uptown());
+    expect(component.hasUnsavedChanges()).toBe(true);
+
+    component.toggleAreaDirect(uptown());
+    expect(component.hasUnsavedChanges()).toBe(false);
+  });
+
+  it('is clean again once the save lands', () => {
+    const { component, uptown } = setup();
+    const areas = TestBed.inject(AreaService) as unknown as { update: jest.Mock };
+    areas.update = jest.fn(() => of(['downtown', 'uptown']));
+
+    component.toggleAreaDirect(uptown());
+    component.saveAreas();
+
+    expect(component.hasUnsavedChanges()).toBe(false);
+  });
+
+  it('warns the browser before a reload only while something is unsaved', () => {
+    const { component, uptown } = setup();
+    const clean = new Event('beforeunload', { cancelable: true });
+    component.onBeforeUnload(clean);
+    expect(clean.defaultPrevented).toBe(false);
+
+    component.toggleAreaDirect(uptown());
+    const dirty = new Event('beforeunload', { cancelable: true });
+    component.onBeforeUnload(dirty);
+    expect(dirty.defaultPrevented).toBe(true);
+  });
+
   it('counts the new area once it is saved', () => {
     const { component, el, fixture, uptown } = setup();
     const areas = TestBed.inject(AreaService) as unknown as { update: jest.Mock };

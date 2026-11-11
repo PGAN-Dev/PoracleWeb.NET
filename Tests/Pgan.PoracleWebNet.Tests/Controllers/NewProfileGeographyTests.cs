@@ -213,7 +213,7 @@ public class NewProfileGeographyTests : ControllerTestBase
                     proxy, this._userGeofences.Object, Mock.Of<IPoracleTrackingProxy>(), NullLogger<UserAreaWriter>.Instance,
                     new UserAreaPolicy(proxy, this._userGeofences.Object)),
                 PairTestSupport.UnlinkedWriter(),
-                Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), NullLogger<ProfileController>.Instance);
+                Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IProfileOverviewService>(), NullLogger<ProfileController>.Instance);
             SetupUser(controller, UserId);
 
             result = endpoint == "create"

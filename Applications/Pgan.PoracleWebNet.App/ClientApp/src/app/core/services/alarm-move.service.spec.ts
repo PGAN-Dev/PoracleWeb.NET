@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, of } from 'rxjs';
 
 import { AlarmMoveService, failedOutcomes, moveRefusalText, summariseMoves } from './alarm-move.service';
 import { ConfigService } from './config.service';
@@ -40,6 +40,23 @@ describe('AlarmMoveService', () => {
     req.flush({ uid: 9 }, { headers: { 'X-Move-Status': 'source_remains' } });
 
     await expect(result).resolves.toEqual({ destination: 'telegram', status: 'source_remains' });
+  });
+
+  it('hands an ordinary save no move result, even when the plain PUT answered with the alarm body', async () => {
+    const plain = jest.fn(() => of({ uid: 7, lureId: 501 } as unknown as void));
+    const result = await firstValueFrom(service.put('lures', 7, {}, plain));
+
+    expect(plain).toHaveBeenCalled();
+    expect(result).toBeUndefined();
+  });
+
+  it('still routes a body naming a destination through the move', async () => {
+    const plain = jest.fn(() => of(undefined));
+    const result = firstValueFrom(service.put('lures', 7, { destination: 'telegram' }, plain));
+    http.expectOne(`${API}/api/lures/7`).flush({ uid: 9 }, { headers: { 'X-Move-Status': 'moved' } });
+
+    await expect(result).resolves.toEqual({ destination: 'telegram', status: 'moved' });
+    expect(plain).not.toHaveBeenCalled();
   });
 
   it('marks a failed move so its 502 sentence is shown instead of the generic one', async () => {

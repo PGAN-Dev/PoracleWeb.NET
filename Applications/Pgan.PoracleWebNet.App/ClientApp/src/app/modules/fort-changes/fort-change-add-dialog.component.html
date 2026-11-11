@@ -49,6 +49,7 @@
         }
         <app-template-selector
           [alarmType]="'fort-update'"
+          [side]="form.controls.destination.value"
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)"></app-template-selector>
       </div>

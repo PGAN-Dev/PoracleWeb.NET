@@ -322,6 +322,7 @@
 
         <app-template-selector
           [alarmType]="'monster'"
+          [side]="notifForm.controls.destination.value"
           [value]="notifForm.controls.template.value ?? ''"
           (valueChange)="notifForm.controls.template.setValue($event)"></app-template-selector>
         <div class="message-row">

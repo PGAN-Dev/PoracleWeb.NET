@@ -113,6 +113,17 @@ describe('AdminUsersComponent', () => {
     }
   });
 
+  it('pins the actions column to the right edge, so View and the menu stay reachable on a phone', () => {
+    const { fixture } = setup();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const cells = root.querySelectorAll('td.mat-column-actions, th.mat-column-actions');
+    expect(cells.length).toBeGreaterThan(1);
+    cells.forEach(c => expect(c.classList).toContain('mat-mdc-table-sticky'));
+    // Only the actions column is pinned: the data columns scroll under it.
+    expect(root.querySelectorAll('td.mat-mdc-table-sticky')).toHaveLength(root.querySelectorAll('td.mat-column-actions').length);
+  });
+
   it('keeps View on the row and names every other action in the row menu', () => {
     const { fixture } = setup();
 

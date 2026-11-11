@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Elk geslacht",
     "GENDER_LABEL": "Geslacht",
     "GENDER_FILTER_NA": "Geslachtsfilter is niet van toepassing op PokéStop evenementen.",
+    "GENDER_FIXED_NA": "Geslachtsfilter is niet van toepassing: dit type grunt heeft een vast geslacht.",
     "UNKNOWN_GRUNT": "Onbekende grunt",
     "SNACK_ALL_CREATED": "Alle invasies alarm aangemaakt",
     "CONFIRM_DELETE_TITLE": "Invasie alarm verwijderen",
@@ -1170,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Opschonen {{action}} voor alle typen ({{count}} alarmen bijgewerkt)",
     "SNACK_TOGGLE_TYPE_ONE": "Opschonen {{action}} voor {{type}} ({{count}} alarm bijgewerkt)",
     "SNACK_TOGGLE_TYPE_OTHER": "Opschonen {{action}} voor {{type}} ({{count}} alarmen bijgewerkt)",
+    "REFUSED_CONFLICT_ONE": "{{count}} overgeslagen: een ander alarm gebruikt die instellingen al.",
+    "REFUSED_CONFLICT_OTHER": "{{count}} overgeslagen: een ander alarm gebruikt die instellingen al.",
+    "REFUSED_OTHER_ONE": "{{count}} overgeslagen: de server accepteerde de wijziging niet.",
+    "REFUSED_OTHER_OTHER": "{{count}} overgeslagen: de server accepteerde de wijziging niet.",
     "ENABLED": "ingeschakeld",
     "DISABLED": "uitgeschakeld"
   },
@@ -1530,6 +1535,7 @@
     "SIGN_IN_AGAIN": "Opnieuw aanmelden"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "De server was even niet bereikbaar. Je bent nog ingelogd; we blijven het proberen.",
     "ADMIN_ONLY": "Die pagina is alleen voor beheerders.",
     "FEATURE_DISABLED": "Deze functie is uitgeschakeld door de beheerder."
   },
@@ -1840,6 +1846,7 @@
     "LOCATION_LONGITUDE": "Lengtegraad",
     "LOCATION_LATITUDE_RANGE": "Vul een breedtegraad in van -90 tot 90.",
     "LOCATION_LONGITUDE_RANGE": "Vul een lengtegraad in van -180 tot 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 ligt in de Golf van Guinee en PoracleNG leest het als geen pin. Kies een echt punt, of gebruik Pin wissen om de pin te verwijderen.",
     "LOCATION_USE_MY": "Mijn locatie gebruiken",
     "LOCATION_GETTING": "Locatie ophalen...",
     "DISTANCE_TITLE_ONE": "Straal wijzigen voor {{count}} alarm",
@@ -1878,6 +1885,7 @@
     "CLOSE": "Sluiten",
     "LOADING": "Laden...",
     "SAVING": "Opslaan...",
+    "WORKING": "Bezig...",
     "ALL": "Alle",
     "NONE": "Geen",
     "ANY": "Elke",
@@ -2164,8 +2172,7 @@
     "UNSAVED_CHANGES": "{{count}} niet opgeslagen",
     "SAVE_CHANGES": "Wijzigingen opslaan",
     "DISCARD_CHANGES": "Verwerpen",
-    "COLLAPSE_SECTION": "Sectie inklappen",
-    "EXPAND_SECTION": "Sectie uitklappen",
+    "SECTION_TOGGLE": "Sectie {{section}}",
     "SUMMARY_ENABLED": "{{count}} van {{total}} ingeschakeld",
     "GROUP_AUTH": "Authenticatie",
     "AUTH_MODE_LABEL": "Aanmeldmodus",

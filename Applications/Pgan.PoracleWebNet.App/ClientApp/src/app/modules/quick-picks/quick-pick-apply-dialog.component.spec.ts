@@ -1,13 +1,19 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatTabGroup } from '@angular/material/tabs';
+import { By } from '@angular/platform-browser';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 
 import { QuickPickApplyDialogComponent } from './quick-pick-apply-dialog.component';
-import { QuickPickSummary } from '../../core/models';
+import { LinkSide, QuickPickSummary } from '../../core/models';
 import { ConfigService } from '../../core/services/config.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
+import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 
 describe('QuickPickApplyDialogComponent', () => {
   let component: QuickPickApplyDialogComponent;
@@ -30,7 +36,7 @@ describe('QuickPickApplyDialogComponent', () => {
     },
   };
 
-  function setup(data: QuickPickSummary) {
+  function setup(data: QuickPickSummary, linked?: { canChoose: boolean; defaultDestination: LinkSide }) {
     dialogRef = { close: jest.fn() };
 
     TestBed.resetTestingModule();
@@ -41,9 +47,22 @@ describe('QuickPickApplyDialogComponent', () => {
         provideTranslateService(),
         provideHttpClient(),
         provideHttpClientTesting(),
+        // Without this the Delivery tab's body never attaches in jsdom, so its picker cannot be queried.
+        provideNoopAnimations(),
         { provide: ConfigService, useValue: { apiHost: API } },
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: dialogRef },
+        ...(linked
+          ? [
+              {
+                provide: LinkedAccountService,
+                useValue: {
+                  canChoose: signal(linked.canChoose),
+                  status: signal({ defaultDestination: linked.defaultDestination, linked: true }),
+                },
+              },
+            ]
+          : []),
       ],
       imports: [QuickPickApplyDialogComponent],
     });
@@ -51,7 +70,30 @@ describe('QuickPickApplyDialogComponent', () => {
     const fixture = TestBed.createComponent(QuickPickApplyDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    return fixture;
   }
+
+  async function templateSide(fixture: ReturnType<typeof setup>): Promise<LinkSide | null> {
+    // The picker sits on the Delivery tab, which Material renders only once it is selected.
+    fixture.debugElement.query(By.directive(MatTabGroup)).componentInstance.selectedIndex = 1;
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return fixture.debugElement.query(By.directive(TemplateSelectorComponent)).componentInstance.side();
+  }
+
+  describe('template picker side', () => {
+    // The dialog has no "Deliver to": an apply creates on the link's default destination, so the picker
+    // must list that side's templates rather than the signed-in platform's.
+    it('follows the default destination for a person who could choose', async () => {
+      expect(await templateSide(setup(basePick, { canChoose: true, defaultDestination: 'telegram' }))).toBe('telegram');
+    });
+
+    it('leaves the picker on the signed-in platform for everyone else', async () => {
+      expect(await templateSide(setup(basePick))).toBeNull();
+      expect(await templateSide(setup(basePick, { canChoose: false, defaultDestination: 'telegram' }))).toBeNull();
+    });
+  });
 
   describe('new apply (no applied state)', () => {
     beforeEach(() => {

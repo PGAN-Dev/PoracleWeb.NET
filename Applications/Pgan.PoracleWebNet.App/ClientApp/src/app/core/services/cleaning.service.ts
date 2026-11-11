@@ -21,6 +21,23 @@ export type CleanStatus = Record<string, boolean | Record<string, CleanCount> | 
   counts?: Record<string, CleanCount>;
 };
 
+/** A rule PoracleNG left at its old setting. `conflict` means another alarm already uses the settings the change would give it. */
+export interface CleanRefusal {
+  reason: string;
+  uid: number;
+}
+
+/** What a clean toggle answers. `refused` is absent when nothing was, and on a server older than the field. */
+export interface CleanToggleResult {
+  refused?: CleanRefusal[];
+  updated: number;
+}
+
+/** What Enable/Disable All answers: the same, plus the feature-gated types it skipped. */
+export interface CleanToggleAllResult extends CleanToggleResult {
+  skipped?: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class CleaningService {
   private readonly config = inject(ConfigService);
@@ -30,13 +47,13 @@ export class CleaningService {
     return this.http.get<CleanStatus>(`${this.config.apiHost}/api/cleaning/status`);
   }
 
-  toggleAll(enabled: boolean): Observable<{ updated: number }> {
+  toggleAll(enabled: boolean): Observable<CleanToggleAllResult> {
     const flag = enabled ? 1 : 0;
-    return this.http.put<{ updated: number }>(`${this.config.apiHost}/api/cleaning/all/${flag}`, {});
+    return this.http.put<CleanToggleAllResult>(`${this.config.apiHost}/api/cleaning/all/${flag}`, {});
   }
 
-  toggleClean(type: CleanAlarmType, enabled: boolean): Observable<{ updated: number }> {
+  toggleClean(type: CleanAlarmType, enabled: boolean): Observable<CleanToggleResult> {
     const flag = enabled ? 1 : 0;
-    return this.http.put<{ updated: number }>(`${this.config.apiHost}/api/cleaning/${type}/${flag}`, {});
+    return this.http.put<CleanToggleResult>(`${this.config.apiHost}/api/cleaning/${type}/${flag}`, {});
   }
 }

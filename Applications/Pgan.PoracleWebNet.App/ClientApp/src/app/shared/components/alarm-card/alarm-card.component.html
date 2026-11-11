@@ -1,7 +1,7 @@
 <mat-card
   class="rule-card"
-  [attr.role]="destination() ? 'group' : null"
-  [attr.aria-labelledby]="destination() ? titleId + ' ' + destinationId : null"
+  role="group"
+  [attr.aria-labelledby]="destination() ? titleId + ' ' + destinationId : titleId"
   [class.rule-card-edged]="edge() !== null"
   [class.rule-card-selected]="selectable() && selected()"
   [style.--rule-edge-light]="edge()?.light"

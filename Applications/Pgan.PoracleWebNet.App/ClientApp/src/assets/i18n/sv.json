@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Alla kön",
     "GENDER_LABEL": "Kön",
     "GENDER_FILTER_NA": "Könsfilter gäller inte för PokéStop-händelser.",
+    "GENDER_FIXED_NA": "Könsfilter gäller inte: den här grunt-typen har ett fast kön.",
     "UNKNOWN_GRUNT": "Okänd grunt",
     "SNACK_ALL_CREATED": "Larm för alla invasioner skapat",
     "CONFIRM_DELETE_TITLE": "Radera invasionslarm",
@@ -1170,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Städning {{action}} för alla typer ({{count}} larm uppdaterade)",
     "SNACK_TOGGLE_TYPE_ONE": "Städning {{action}} för {{type}} ({{count}} larm uppdaterat)",
     "SNACK_TOGGLE_TYPE_OTHER": "Städning {{action}} för {{type}} ({{count}} larm uppdaterade)",
+    "REFUSED_CONFLICT_ONE": "Hoppade över {{count}}: ett annat larm använder redan de inställningarna.",
+    "REFUSED_CONFLICT_OTHER": "Hoppade över {{count}}: ett annat larm använder redan de inställningarna.",
+    "REFUSED_OTHER_ONE": "Hoppade över {{count}}: servern godtog inte ändringen.",
+    "REFUSED_OTHER_OTHER": "Hoppade över {{count}}: servern godtog inte ändringen.",
     "ENABLED": "aktiverad",
     "DISABLED": "inaktiverad"
   },
@@ -1530,6 +1535,7 @@
     "SIGN_IN_AGAIN": "Logga in igen"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Vi kunde inte nå servern just nu. Du är fortfarande inloggad; vi fortsätter försöka.",
     "ADMIN_ONLY": "Den sidan är bara för administratörer.",
     "FEATURE_DISABLED": "Den här funktionen har inaktiverats av administratören."
   },
@@ -1840,6 +1846,7 @@
     "LOCATION_LONGITUDE": "Longitud",
     "LOCATION_LATITUDE_RANGE": "Ange en latitud från -90 till 90.",
     "LOCATION_LONGITUDE_RANGE": "Ange en longitud från -180 till 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 ligger i Guineabukten, och PoracleNG tolkar det som ingen nål. Välj en riktig punkt, eller använd Rensa nål för att ta bort nålen.",
     "LOCATION_USE_MY": "Använd min plats",
     "LOCATION_GETTING": "Hämtar plats...",
     "DISTANCE_TITLE_ONE": "Ändra radien för {{count}} larm",
@@ -1878,6 +1885,7 @@
     "CLOSE": "Stäng",
     "LOADING": "Laddar...",
     "SAVING": "Sparar...",
+    "WORKING": "Arbetar...",
     "ALL": "Alla",
     "NONE": "Ingen",
     "ANY": "Alla",
@@ -2164,8 +2172,7 @@
     "UNSAVED_CHANGES": "{{count}} osparade",
     "SAVE_CHANGES": "Spara ändringar",
     "DISCARD_CHANGES": "Ångra",
-    "COLLAPSE_SECTION": "Fäll ihop sektion",
-    "EXPAND_SECTION": "Expandera sektion",
+    "SECTION_TOGGLE": "Sektion {{section}}",
     "SUMMARY_ENABLED": "{{count}} av {{total}} aktiverade",
     "GROUP_AUTH": "Autentisering",
     "AUTH_MODE_LABEL": "Inloggningsläge",

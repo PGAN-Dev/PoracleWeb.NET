@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Qualquer género",
     "GENDER_LABEL": "Género",
     "GENDER_FILTER_NA": "O filtro de género não se aplica a eventos PokéStop.",
+    "GENDER_FIXED_NA": "O filtro de género não se aplica: este tipo de recruta tem um género fixo.",
     "UNKNOWN_GRUNT": "Recruta desconhecido",
     "SNACK_ALL_CREATED": "Alarme de todas as invasões criado",
     "CONFIRM_DELETE_TITLE": "Eliminar alarme de invasão",
@@ -1170,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Limpeza {{action}} para todos os tipos ({{count}} alarmes atualizados)",
     "SNACK_TOGGLE_TYPE_ONE": "Limpeza {{action}} para {{type}} ({{count}} alarme atualizado)",
     "SNACK_TOGGLE_TYPE_OTHER": "Limpeza {{action}} para {{type}} ({{count}} alarmes atualizados)",
+    "REFUSED_CONFLICT_ONE": "{{count}} foi ignorado: outro alarme já usa essas configurações.",
+    "REFUSED_CONFLICT_OTHER": "{{count}} foram ignorados: outro alarme já usa essas configurações.",
+    "REFUSED_OTHER_ONE": "{{count}} foi ignorado: o servidor não aceitou a alteração.",
+    "REFUSED_OTHER_OTHER": "{{count}} foram ignorados: o servidor não aceitou a alteração.",
     "ENABLED": "ativada",
     "DISABLED": "desativada"
   },
@@ -1530,6 +1535,7 @@
     "SIGN_IN_AGAIN": "Iniciar sessão novamente"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Não foi possível contactar o servidor agora. Continua com a sessão iniciada; vamos continuar a tentar.",
     "ADMIN_ONLY": "Essa página é só para administradores.",
     "FEATURE_DISABLED": "Esta funcionalidade foi desativada pelo administrador."
   },
@@ -1840,6 +1846,7 @@
     "LOCATION_LONGITUDE": "Longitude",
     "LOCATION_LATITUDE_RANGE": "Indica uma latitude de -90 a 90.",
     "LOCATION_LONGITUDE_RANGE": "Indica uma longitude de -180 a 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 fica no Golfo da Guiné e o PoracleNG interpreta-o como sem marcador. Escolhe um ponto real ou usa Limpar marcador para o remover.",
     "LOCATION_USE_MY": "Usar a minha localização",
     "LOCATION_GETTING": "A obter localização...",
     "DISTANCE_TITLE_ONE": "Alterar o raio de {{count}} alarme",
@@ -1878,6 +1885,7 @@
     "CLOSE": "Fechar",
     "LOADING": "A carregar...",
     "SAVING": "A guardar...",
+    "WORKING": "A processar...",
     "ALL": "Todos",
     "NONE": "Nenhum",
     "ANY": "Qualquer",
@@ -2164,8 +2172,7 @@
     "UNSAVED_CHANGES": "{{count}} por guardar",
     "SAVE_CHANGES": "Guardar alterações",
     "DISCARD_CHANGES": "Descartar",
-    "COLLAPSE_SECTION": "Recolher secção",
-    "EXPAND_SECTION": "Expandir secção",
+    "SECTION_TOGGLE": "Secção {{section}}",
     "SUMMARY_ENABLED": "{{count}} de {{total}} ativos",
     "GROUP_AUTH": "Autenticação",
     "AUTH_MODE_LABEL": "Modo de início de sessão",

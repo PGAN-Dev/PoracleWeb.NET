@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Qualsiasi genere",
     "GENDER_LABEL": "Genere",
     "GENDER_FILTER_NA": "Il filtro di genere non si applica agli eventi PokéStop.",
+    "GENDER_FIXED_NA": "Il filtro di genere non si applica: questo tipo di recluta ha un genere fisso.",
     "UNKNOWN_GRUNT": "Recluta sconosciuta",
     "SNACK_ALL_CREATED": "Allarme per tutte le invasioni creato",
     "CONFIRM_DELETE_TITLE": "Elimina allarme invasione",
@@ -1170,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Pulizia {{action}} per tutti i tipi ({{count}} allarmi aggiornati)",
     "SNACK_TOGGLE_TYPE_ONE": "Pulizia {{action}} per {{type}} ({{count}} allarme aggiornato)",
     "SNACK_TOGGLE_TYPE_OTHER": "Pulizia {{action}} per {{type}} ({{count}} allarmi aggiornati)",
+    "REFUSED_CONFLICT_ONE": "Saltato {{count}}: un altro allarme usa già queste impostazioni.",
+    "REFUSED_CONFLICT_OTHER": "Saltati {{count}}: un altro allarme usa già queste impostazioni.",
+    "REFUSED_OTHER_ONE": "Saltato {{count}}: il server non ha accettato la modifica.",
+    "REFUSED_OTHER_OTHER": "Saltati {{count}}: il server non ha accettato la modifica.",
     "ENABLED": "abilitata",
     "DISABLED": "disabilitata"
   },
@@ -1530,6 +1535,7 @@
     "SIGN_UP_DESC": "Non hai un account? Registrati per iniziare."
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Il server non è raggiungibile al momento. Sei ancora connesso/a; continueremo a riprovare.",
     "ADMIN_ONLY": "Quella pagina è riservata agli amministratori.",
     "FEATURE_DISABLED": "Questa funzione è stata disattivata dall'amministratore."
   },
@@ -1840,6 +1846,7 @@
     "LOCATION_LONGITUDE": "Longitudine",
     "LOCATION_LATITUDE_RANGE": "Inserisci una latitudine da -90 a 90.",
     "LOCATION_LONGITUDE_RANGE": "Inserisci una longitudine da -180 a 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 si trova nel Golfo di Guinea e PoracleNG lo interpreta come nessun segnaposto. Scegli un punto reale oppure usa «Rimuovi segnaposto» per eliminarlo.",
     "LOCATION_USE_MY": "Usa la mia posizione",
     "LOCATION_GETTING": "Recupero posizione...",
     "DISTANCE_TITLE_ONE": "Cambia il raggio di {{count}} allarme",
@@ -1878,6 +1885,7 @@
     "CLOSE": "Chiudi",
     "LOADING": "Caricamento...",
     "SAVING": "Salvataggio...",
+    "WORKING": "Elaborazione...",
     "ALL": "Tutti",
     "NONE": "Nessuno",
     "ANY": "Qualsiasi",
@@ -2169,8 +2177,7 @@
     "UNSAVED_CHANGES": "{{count}} non salvate",
     "SAVE_CHANGES": "Salva modifiche",
     "DISCARD_CHANGES": "Annulla",
-    "COLLAPSE_SECTION": "Comprimi sezione",
-    "EXPAND_SECTION": "Espandi sezione",
+    "SECTION_TOGGLE": "Sezione {{section}}",
     "SUMMARY_ENABLED": "{{count}} di {{total}} attive",
     "DISABLE_UPDATE_CHECK_LABEL": "Cerca aggiornamenti",
     "DISABLE_UPDATE_CHECK_DESC": "Consente al sito di chiedere a GitHub se è uscita una versione più recente di PoracleWeb.NET o Poracle. È l’unica richiesta che esce dalla tua rete e non invia nulla.",

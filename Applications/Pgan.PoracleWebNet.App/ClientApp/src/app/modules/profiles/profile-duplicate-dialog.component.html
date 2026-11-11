@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>{{ 'PROFILES.DUPLICATE_DIALOG_TITLE' | translate }}</h2>
 @if (duplicating()) {
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'COMMON.WORKING' | translate"></mat-progress-bar>
 }
 <mat-dialog-content>
   <p class="duplicate-description">
