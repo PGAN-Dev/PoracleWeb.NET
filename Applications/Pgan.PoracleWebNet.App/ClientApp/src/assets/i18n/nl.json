@@ -1845,6 +1845,7 @@
     "LOCATION_LONGITUDE": "Lengtegraad",
     "LOCATION_LATITUDE_RANGE": "Vul een breedtegraad in van -90 tot 90.",
     "LOCATION_LONGITUDE_RANGE": "Vul een lengtegraad in van -180 tot 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 ligt in de Golf van Guinee en PoracleNG leest het als geen pin. Kies een echt punt, of gebruik Pin wissen om de pin te verwijderen.",
     "LOCATION_USE_MY": "Mijn locatie gebruiken",
     "LOCATION_GETTING": "Locatie ophalen...",
     "DISTANCE_TITLE_ONE": "Straal wijzigen voor {{count}} alarm",

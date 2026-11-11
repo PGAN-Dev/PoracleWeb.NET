@@ -1845,6 +1845,7 @@
     "LOCATION_LONGITUDE": "Longitude",
     "LOCATION_LATITUDE_RANGE": "Informe uma latitude de -90 a 90.",
     "LOCATION_LONGITUDE_RANGE": "Informe uma longitude de -180 a 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 fica no Golfo da Guiné e o PoracleNG interpreta como sem marcador. Escolha um ponto real ou use Limpar marcador para removê-lo.",
     "LOCATION_USE_MY": "Usar minha localização",
     "LOCATION_GETTING": "Obtendo localização...",
     "DISTANCE_TITLE_ONE": "Alterar o raio de {{count}} alarme",

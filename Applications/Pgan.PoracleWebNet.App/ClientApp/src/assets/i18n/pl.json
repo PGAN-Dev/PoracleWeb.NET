@@ -1931,6 +1931,7 @@
     "LOCATION_LONGITUDE": "Długość geograficzna",
     "LOCATION_LATITUDE_RANGE": "Podaj szerokość geograficzną od -90 do 90.",
     "LOCATION_LONGITUDE_RANGE": "Podaj długość geograficzną od -180 do 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 leży w Zatoce Gwinejskiej, a PoracleNG odczytuje to jako brak pinezki. Wybierz prawdziwy punkt albo użyj opcji usunięcia pinezki.",
     "LOCATION_USE_MY": "Użyj mojej lokalizacji",
     "LOCATION_GETTING": "Pobieranie lokalizacji...",
     "DISTANCE_TITLE_ONE": "Zmień promień {{count}} alarmu",

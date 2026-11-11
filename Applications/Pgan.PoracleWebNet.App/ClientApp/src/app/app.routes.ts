@@ -105,6 +105,7 @@ export const routes: Routes = [
   },
   {
     canActivate: [authGuard, disabledFeatureGuard('disable_areas')],
+    canDeactivate: [unsavedChangesGuard],
     loadComponent: () => import('./modules/areas/area-list.component').then(m => m.AreaListComponent),
     path: 'areas',
     title: 'NAV.AREAS',

@@ -1845,6 +1845,7 @@
     "LOCATION_LONGITUDE": "Longitude",
     "LOCATION_LATITUDE_RANGE": "Enter a latitude from -90 to 90.",
     "LOCATION_LONGITUDE_RANGE": "Enter a longitude from -180 to 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 is in the Gulf of Guinea, and PoracleNG reads it as no pin. Pick a real point, or use Clear on the Areas page to remove the pin.",
     "LOCATION_USE_MY": "Use my location",
     "LOCATION_GETTING": "Getting location...",
     "DISTANCE_TITLE_ONE": "Change the radius of {{count}} alarm",

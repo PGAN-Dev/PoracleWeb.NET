@@ -186,16 +186,26 @@
   min-height: 360px;
   overflow: hidden;
 
+  // A flex column, so the region-search toolbar takes what it needs and the map wrapper takes the rest.
+  // The wrapper used to be `height: 100%` of the host with the toolbar above it as a sibling, so the two
+  // together overran the host by the toolbar's height and `overflow: hidden` cut the map's bottom edge,
+  // attribution included.
   app-area-map {
-    display: block;
+    display: flex;
+    flex-direction: column;
     height: 100%;
   }
 
   ::ng-deep {
+    .map-toolbar {
+      flex: none;
+    }
+
     .map-wrapper {
       display: flex;
+      flex: 1;
       flex-direction: column;
-      height: 100%;
+      min-height: 0;
     }
 
     .area-map-container {

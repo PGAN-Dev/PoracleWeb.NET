@@ -1,5 +1,16 @@
 import { NgTemplateOutlet, SlicePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, DestroyRef, inject, signal, computed, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  OnInit,
+  DestroyRef,
+  inject,
+  signal,
+  computed,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -15,6 +26,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslatePipe } from '@ngx-translate/core';
 import { finalize, switchMap } from 'rxjs';
 
+import { HasUnsavedChanges } from '../../core/guards/unsaved-changes.guard';
 import { AreaDefinition, GeofenceData, Location } from '../../core/models';
 import { AreaService } from '../../core/services/area.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -79,7 +91,7 @@ interface GroupInfo {
   styleUrl: './area-list.component.scss',
   templateUrl: './area-list.component.html',
 })
-export class AreaListComponent implements OnInit {
+export class AreaListComponent implements OnInit, HasUnsavedChanges {
   readonly availableAreas = signal<AreaDefinition[]>([]);
   /**
    * Lowercased stored name to the name Poracle actually publishes.
@@ -329,6 +341,10 @@ export class AreaListComponent implements OnInit {
     this.syncSelectedFromAreas();
   }
 
+  hasUnsavedChanges(): boolean {
+    return this.hasChanges();
+  }
+
   /** Whether the area is subscribed on the server, rather than only ticked on this page. */
   isSaved(name: string): boolean {
     return this.savedAreaKeys().has(areaKey(name));
@@ -337,6 +353,13 @@ export class AreaListComponent implements OnInit {
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => clearTimeout(this.pinPanelScroll));
     this.loadData();
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent | Event): void {
+    if (!this.hasUnsavedChanges()) return;
+    event.preventDefault();
+    (event as BeforeUnloadEvent).returnValue = '';
   }
 
   onGroupFilterSelected(option: RegionOption): void {
