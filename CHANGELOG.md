@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
+- **Custom geofence routes no longer reveal which ids belong to other members.** Renaming another member's geofence already answered 404, but activate, deactivate, delete, the delete preview and submit-for-review answered 403 with an empty body, while a missing id answered 404 with a message. A signed-in member could walk sequential ids and learn which ones exist. All of them now answer the same 404 and body for "not yours" and "does not exist". Admin geofence routes are unchanged, and submit-for-review on a missing geofence is now a 404 instead of a 400.
+
 
 ## [3.8.0] - 2026-11-11
 
