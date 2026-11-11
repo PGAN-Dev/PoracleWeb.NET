@@ -38,6 +38,12 @@ public class PublicPoracleConfig
     /// <summary>PoracleNG's <c>[tracking] max_areas</c>; <c>0</c> is no limit.</summary>
     public int MaxAreas { get; set; }
 
+    /// <summary>
+    /// PoracleNG's <c>[tracking] default_edit</c>: alert types edited in place whether or not the rule asks. The
+    /// SPA labels such rules the way the bot's <c>!tracked</c> does ("edit (default)").
+    /// </summary>
+    public List<string> DefaultEdit { get; set; } = [];
+
     /// <summary>The bot command prefix. Not sensitive: it is in every command a user already types.</summary>
     public string Prefix { get; set; } = string.Empty;
 
@@ -56,6 +62,7 @@ public class PublicPoracleConfig
         EverythingFlagPermissions = source.EverythingFlagPermissions,
         MaxDistance = source.MaxDistance,
         MaxAreas = source.MaxAreas,
+        DefaultEdit = source.DefaultEdit,
         Prefix = source.Prefix,
     };
 }

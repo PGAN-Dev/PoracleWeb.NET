@@ -66,6 +66,7 @@
               ><mat-icon>auto_delete</mat-icon>{{ 'ALARM.STATUS_CLEAN' | translate }}</span
             >
           }
+          <app-edit-default-tag type="incident" [clean]="item.clean" />
         </ng-container>
         <app-where-chip
           ruleScope

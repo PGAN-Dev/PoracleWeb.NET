@@ -56,6 +56,13 @@ public interface IPoracleApiProxy
     /// <returns>The raw JSON map keyed <c>"{pokemonId}_{formId}"</c>, or <c>null</c> when upstream
     /// is unreachable or does not serve it.</returns>
     Task<string?> GetMonstersAsync(string locale);
+
+    /// <summary>
+    /// Costume names in <paramref name="locale"/>, from PoracleNG 5.4.0's <c>GET /api/masterdata/costumes</c>:
+    /// an object keyed by costume id with <c>{id, name}</c> values, id 0 ("Unset") included.
+    /// </summary>
+    /// <returns>The raw JSON, or <c>null</c> when upstream is unreachable or does not serve the route.</returns>
+    Task<string?> GetCostumesAsync(string locale);
     Task<string?> GetGeofenceAsync();
     Task<string?> GetAreasWithGroupsAsync(string userId);
     Task<string?> GetAreaMapUrlAsync(string areaName);

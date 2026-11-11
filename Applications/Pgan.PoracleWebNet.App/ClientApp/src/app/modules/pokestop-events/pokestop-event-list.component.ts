@@ -25,6 +25,7 @@ import { AlarmListToolbarComponent, AlarmSortOption } from '../../shared/compone
 import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { EditDefaultTagComponent } from '../../shared/components/edit-default-tag/edit-default-tag.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
 import { addOnArrival } from '../../shared/utils/add-on-arrival';
@@ -61,6 +62,7 @@ import { serverReason } from '../../shared/utils/server-reason';
     MatSnackBarModule,
     MatProgressSpinnerModule,
     TranslatePipe,
+    EditDefaultTagComponent,
     WhereChipComponent,
   ],
   selector: 'app-pokestop-event-list',

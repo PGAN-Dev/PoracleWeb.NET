@@ -6,6 +6,7 @@ import { ConfigService } from './config.service';
 import { PoracleServerConfig } from '../models';
 
 const FALLBACK: PoracleServerConfig = {
+  defaultEdit: [],
   defaultPvpCap: 0,
   defaultTemplateName: 'default',
   everythingFlagPermissions: '',

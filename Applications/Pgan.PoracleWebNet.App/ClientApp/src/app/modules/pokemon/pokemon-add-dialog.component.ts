@@ -25,6 +25,7 @@ import { MonsterService } from '../../core/services/monster.service';
 import { PoracleConfigService } from '../../core/services/poracle-config.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
 import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
+import { EditDefaultTagComponent } from '../../shared/components/edit-default-tag/edit-default-tag.component';
 import { PokemonSelectorComponent } from '../../shared/components/pokemon-selector/pokemon-selector.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
@@ -38,6 +39,7 @@ import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
 @Component({
   imports: [
     DeliverToFieldComponent,
+    EditDefaultTagComponent,
     AddRefusalComponent,
     ReactiveFormsModule,
     MatDialogModule,

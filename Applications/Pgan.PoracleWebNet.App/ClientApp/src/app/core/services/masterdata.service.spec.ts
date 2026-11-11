@@ -61,7 +61,7 @@ describe('MasterDataService', () => {
       const pokemonReq = httpMock.expectOne(`${API}/api/masterdata/pokemon`);
       const itemsReq = httpMock.expectOne(`${API}/api/masterdata/items`);
       const movesReq = httpMock.expectOne(`${API}/api/masterdata/moves`);
-      const costumesReq = httpMock.expectOne(`${API}/api/masterdata/costumes`);
+      const costumesReq = httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`);
       const gruntsReq = httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`);
 
       pokemonReq.flush({ '25': 'Pikachu', '150': 'Mewtwo' });
@@ -85,7 +85,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({ '13': 'Wrap' });
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
 
@@ -101,7 +101,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '25': 'Pikachu' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
     });
@@ -116,7 +116,7 @@ describe('MasterDataService', () => {
       // The items request gets cancelled by forkJoin, so just match and discard it
       httpMock.match(`${API}/api/masterdata/items`);
       httpMock.match(`${API}/api/masterdata/moves`);
-      httpMock.match(`${API}/api/masterdata/costumes`);
+      httpMock.match(req => req.url === `${API}/api/masterdata/costumes`);
       httpMock.match(req => req.url === `${API}/api/masterdata/grunts`);
       httpMock.match(req => req.url === `${API}/api/masterdata/monsters`);
 
@@ -135,7 +135,7 @@ describe('MasterDataService', () => {
       });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
 
@@ -168,7 +168,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '618': 'Stunfisk' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock
         .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
@@ -190,7 +190,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1': 'Bulbasaur' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock
         .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
@@ -210,7 +210,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1007': 'Koraidon' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock
         .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
@@ -228,7 +228,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1': 'Bulbasaur' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock
         .expectOne(req => req.url === `${API}/api/masterdata/monsters`)
@@ -248,7 +248,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush(pokemon);
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock.expectOne(req => req.url === MONSTERS).flush(monsters);
     }
@@ -264,8 +264,24 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
+    });
+
+    it('should request the costume names for the current display language too', () => {
+      TestBed.inject(I18nService).use('fr');
+      service.loadData().subscribe();
+
+      const req = httpMock.expectOne(r => r.url === `${API}/api/masterdata/costumes`);
+      expect(req.request.params.get('locale')).toBe('fr');
+
+      req.flush({ '1': 'Vacances' });
+      httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
+      httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
+      httpMock.expectOne(req => req.url === MONSTERS).flush({});
+      expect(service.getCostumeName(1)).toBe('Vacances');
     });
 
     it('should prefer the translated name over the English masterfile name', () => {
@@ -289,7 +305,7 @@ describe('MasterDataService', () => {
       germanHttp.expectOne(`${API}/api/masterdata/pokemon`).flush({ '1': 'Bulbasaur' });
       germanHttp.expectOne(`${API}/api/masterdata/items`).flush({});
       germanHttp.expectOne(`${API}/api/masterdata/moves`).flush({});
-      germanHttp.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      germanHttp.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       germanHttp.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       germanHttp.expectOne(req => req.url === MONSTERS).flush({ '1_0': { id: 1, name: 'Bisasam', form: { id: 0, name: '' } } });
 
@@ -337,7 +353,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '25': 'Pikachu' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock.expectOne(req => req.url === MONSTERS).error(new ProgressEvent('error'), { status: 404, statusText: 'Not Found' });
 
@@ -359,7 +375,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '25': 'Pikachu' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({});
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
 
       expect(seen).toEqual(['Pikachu', 'Pikachu (fr)']);
@@ -373,7 +389,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      const costumesReq = httpMock.expectOne(`${API}/api/masterdata/costumes`);
+      const costumesReq = httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`);
       const gruntsReq = httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`);
       gruntsReq.flush({});
       if (costumes === null) {
@@ -416,7 +432,9 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({ '25': 'Pikachu' });
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).error(new ProgressEvent('error'), { status: 500, statusText: 'Error' });
+      httpMock
+        .expectOne(req => req.url === `${API}/api/masterdata/costumes`)
+        .error(new ProgressEvent('error'), { status: 500, statusText: 'Error' });
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/monsters`).flush({});
 
@@ -439,7 +457,7 @@ describe('MasterDataService', () => {
       httpMock.expectOne(`${API}/api/masterdata/pokemon`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/items`).flush({});
       httpMock.expectOne(`${API}/api/masterdata/moves`).flush({});
-      httpMock.expectOne(`${API}/api/masterdata/costumes`).flush({ '85': 'Halloween 2025' });
+      httpMock.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({ '85': 'Halloween 2025' });
       httpMock.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
 
       expect(service.getCostumeName(85)).toBe('Halloween 2025');
@@ -478,7 +496,7 @@ describe('MasterDataService — type labels the server did not translate', () =>
     http.expectOne(`${API}/api/masterdata/pokemon`).flush({});
     http.expectOne(`${API}/api/masterdata/items`).flush({});
     http.expectOne(`${API}/api/masterdata/moves`).flush({});
-    http.expectOne(`${API}/api/masterdata/costumes`).flush({});
+    http.expectOne(req => req.url === `${API}/api/masterdata/costumes`).flush({});
     http.expectOne(req => req.url === `${API}/api/masterdata/grunts`).flush({});
     http
       .expectOne(req => req.url === `${API}/api/masterdata/monsters`)

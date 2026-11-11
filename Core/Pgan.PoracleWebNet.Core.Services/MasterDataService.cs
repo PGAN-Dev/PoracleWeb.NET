@@ -27,9 +27,9 @@ public partial class MasterDataService(
         "https://raw.githubusercontent.com/WatWowMap/Masterfile-Generator/master/master-latest-poracle.json";
 
     // The poracle-shaped masterfile carries no costume map, so costume names come from the raw one -
-    // the same file PoracleNG downloads for its own costume lookups. English only: PoracleNG translates
-    // costume names internally from gamelocale keys but exposes no endpoint serving them, verified
-    // against 5.2.1 (GET /api/masterdata/costumes answers 404).
+    // the same file PoracleNG downloads for its own costume lookups. English only: this is the fallback
+    // MasterDataController uses when PoracleNG's translated GET /api/masterdata/costumes (5.4.0) is
+    // unreachable or answers nothing usable.
     private const string RawMasterfileUrl =
         "https://raw.githubusercontent.com/WatWowMap/Masterfile-Generator/master/master-latest-raw.json";
 

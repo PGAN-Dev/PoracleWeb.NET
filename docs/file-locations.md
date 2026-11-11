@@ -158,6 +158,7 @@ Pgan.PoracleWebNet.slnx
 | Mute / MuteScopes Models | `Core/Pgan.PoracleWebNet.Core.Models/Mute.cs`, `MuteScopes.cs` |
 | Mute Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/mute.service.ts` |
 | Quiet Chip / Sheet / List Sheet | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/quiet-chip/`, `quiet-sheet/`, `quiet-list-sheet/` |
+| Edit Default Tag (server `default_edit` status chip and dialog hint) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/shared/components/edit-default-tag/` |
 | TestAlertService | `Core/Pgan.PoracleWebNet.Core.Services/TestAlertService.cs` |
 | TestAlertRequest Model | `Core/Pgan.PoracleWebNet.Core.Models/TestAlertRequest.cs` |
 | Test Alert Service (frontend) | `Applications/Pgan.PoracleWebNet.App/ClientApp/src/app/core/services/test-alert.service.ts` |

@@ -135,6 +135,95 @@ public class MasterDataControllerTests : ControllerTestBase
         Assert.IsType<NotFoundObjectResult>(await this._sut.GetGrunts(null));
     }
 
+    // --- GetCostumes ---
+
+    /// <summary>
+    /// PoracleNG 5.4.0 serves <c>GET /api/masterdata/costumes?locale=</c> keyed by id with <c>{id, name}</c>
+    /// values. The SPA keeps the id-to-name map it always had, so the controller reshapes the answer and
+    /// drops id 0 ("Unset"), which the dialogs offer as their own "no costume" choice.
+    /// </summary>
+    [Fact]
+    public async Task GetCostumesServesPoracleNgTranslationsAsAnIdToNameMap()
+    {
+        this._poracleApiProxy.Setup(p => p.GetCostumesAsync("fr")).ReturnsAsync(
+            /*lang=json,strict*/ """{"0":{"id":0,"name":"Unset"},"1":{"id":1,"name":"Vacances"},"6":{"id":6,"name":"Casquette Noire"}}""");
+
+        var content = Assert.IsType<ContentResult>(await this._sut.GetCostumes("fr"));
+
+        Assert.Equal("application/json", content.ContentType);
+        var map = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(content.Content!);
+        Assert.Equal(new Dictionary<string, string> { ["1"] = "Vacances", ["6"] = "Casquette Noire" }, map);
+        this._masterDataService.Verify(s => s.GetCostumeDataAsync(), Times.Never);
+    }
+
+    /// <summary>An untranslated key leaking through (<c>costume_88</c>) is worse than the SPA's own "Costume 88".</summary>
+    [Fact]
+    public async Task GetCostumesDropsEntriesWhoseNameIsStillATranslationKey()
+    {
+        this._poracleApiProxy.Setup(p => p.GetCostumesAsync("en")).ReturnsAsync(
+            /*lang=json,strict*/ """{"1":{"id":1,"name":"Holiday"},"88":{"id":88,"name":"costume_88"},"89":{"id":89,"name":""}}""");
+
+        var content = Assert.IsType<ContentResult>(await this._sut.GetCostumes(null));
+
+        var map = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(content.Content!);
+        Assert.Equal(new Dictionary<string, string> { ["1"] = "Holiday" }, map);
+    }
+
+    [Fact]
+    public async Task GetCostumesDefaultsToEnglishAndConstrainsTheLocale()
+    {
+        this._poracleApiProxy.Setup(p => p.GetCostumesAsync("en")).ReturnsAsync(/*lang=json,strict*/ """{"1":{"id":1,"name":"Holiday"}}""");
+
+        Assert.IsType<ContentResult>(await this._sut.GetCostumes(null));
+        Assert.IsType<ContentResult>(await this._sut.GetCostumes("../etc?x=1"));
+
+        this._poracleApiProxy.Verify(p => p.GetCostumesAsync("en"), Times.Exactly(2));
+    }
+
+    /// <summary>A PoracleNG without the route, or one that is down, keeps the English masterfile names it always had.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GetCostumesFallsBackToTheMasterfileWhenUpstreamHasNothing(bool unreachable)
+    {
+        var setup = this._poracleApiProxy.Setup(p => p.GetCostumesAsync(It.IsAny<string>()));
+        if (unreachable)
+        {
+            setup.ThrowsAsync(new HttpRequestException("down"));
+        }
+        else
+        {
+            setup.ReturnsAsync((string?)null);
+        }
+
+        this._masterDataService.Setup(s => s.GetCostumeDataAsync()).ReturnsAsync(/*lang=json,strict*/ """{"1":"Holiday"}""");
+
+        var content = Assert.IsType<ContentResult>(await this._sut.GetCostumes("de"));
+
+        Assert.Contains("Holiday", content.Content);
+    }
+
+    /// <summary>An empty object is what PoracleNG answers before its game data loaded; that is "nothing", not "no costumes".</summary>
+    [Fact]
+    public async Task GetCostumesTreatsAnEmptyUpstreamAnswerAsAbsent()
+    {
+        this._poracleApiProxy.Setup(p => p.GetCostumesAsync(It.IsAny<string>())).ReturnsAsync("{}");
+        this._masterDataService.Setup(s => s.GetCostumeDataAsync()).ReturnsAsync(/*lang=json,strict*/ """{"1":"Holiday"}""");
+
+        var content = Assert.IsType<ContentResult>(await this._sut.GetCostumes("en"));
+
+        Assert.Contains("Holiday", content.Content);
+    }
+
+    [Fact]
+    public async Task GetCostumesReturnsNotFoundWhenNeitherSourceHasData()
+    {
+        this._poracleApiProxy.Setup(p => p.GetCostumesAsync(It.IsAny<string>())).ReturnsAsync((string?)null);
+        this._masterDataService.Setup(s => s.GetCostumeDataAsync()).ReturnsAsync((string?)null);
+
+        Assert.IsType<NotFoundObjectResult>(await this._sut.GetCostumes("en"));
+    }
+
     // --- GetMonsters ---
 
     [Fact]

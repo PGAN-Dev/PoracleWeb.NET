@@ -402,11 +402,11 @@ export class MasterDataService {
     this.loadedLocale = locale;
 
     forkJoin({
-      // Costume names are English at source (no upstream translated list exists), so unlike monsters
-      // they are not refetched on a language change. A failure degrades to "names unavailable" rather
-      // than blocking ready$ -- the two sentinel choices work without them.
+      // Translated by PoracleNG 5.4.0, so refetched on a language change like monsters; our API falls
+      // back to the English masterfile names when PoracleNG has none. A failure degrades to "names
+      // unavailable" rather than blocking ready$ -- the two sentinel choices work without them.
       costumes: this.http
-        .get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/costumes`)
+        .get<Record<string, string>>(`${this.config.apiHost}/api/masterdata/costumes`, { params: { locale } })
         .pipe(catchError(() => of({} as Record<string, string>))),
       // Translated, so refetched on a language change like monsters. A PoracleNG too old to carry the
       // names answers its older shape and this produces nothing, which leaves every label exactly where

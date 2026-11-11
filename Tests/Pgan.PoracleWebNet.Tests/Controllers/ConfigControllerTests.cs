@@ -87,6 +87,17 @@ public class ConfigControllerTests : ControllerTestBase
         Assert.Equal(50, returned.DefaultPvpCap);
     }
 
+    /// <summary>The SPA labels rules of a type the server edits in place by default, so the list has to reach it.</summary>
+    [Fact]
+    public async Task GetConfigSurfacesDefaultEdit()
+    {
+        this._proxy.Setup(p => p.GetConfigAsync()).ReturnsAsync(new PoracleConfig { DefaultEdit = ["pokemon", "lure"] });
+
+        var ok = Assert.IsType<OkObjectResult>(await this._sut.GetConfig());
+
+        Assert.Equal(["pokemon", "lure"], Assert.IsType<PublicPoracleConfig>(ok.Value).DefaultEdit);
+    }
+
     [Fact]
     public async Task GetConfigReturnsFallbackConfigWhenNull()
     {

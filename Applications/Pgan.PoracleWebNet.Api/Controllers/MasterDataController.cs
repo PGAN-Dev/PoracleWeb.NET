@@ -84,17 +84,34 @@ public partial class MasterDataController(
     }
 
     /// <summary>
-    /// Costume ID to name map, used to label the costume filter on pokemon and raid alarms.
+    /// Costume ID to name map in <paramref name="locale"/>, used to label the costume filter on pokemon and
+    /// raid alarms.
     /// </summary>
     /// <remarks>
-    /// English regardless of display language: PoracleNG translates costume names internally but
-    /// serves them nowhere (verified on 5.2.1 - <c>/api/masterdata/costumes</c> is a 404 there), so
-    /// this reads the raw WatWowMap masterfile instead.
+    /// PoracleNG 5.4.0 serves translated names at <c>/api/masterdata/costumes?locale=</c> (keyed by id, values
+    /// <c>{id, name}</c>). This flattens that to the id-to-name map the SPA has always read, dropping id 0
+    /// ("Unset", which the dialogs offer as their own "no costume" choice) and any name that is still a bare
+    /// <c>costume_N</c> translation key. A server without the route, one that is down, or one whose game data
+    /// has not loaded (an empty object) falls back to the English names from the raw WatWowMap masterfile.
     /// </remarks>
     [AllowAnonymous]
     [HttpGet("costumes")]
-    public async Task<IActionResult> GetCostumes()
+    public async Task<IActionResult> GetCostumes([FromQuery] string? locale)
     {
+        try
+        {
+            var localized = await this._poracleApiProxy.GetCostumesAsync(NormalizeLocale(locale));
+            if (FlattenCostumes(localized) is { Count: > 0 } names)
+            {
+                return this.Content(System.Text.Json.JsonSerializer.Serialize(names), "application/json");
+            }
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            // Upstream unreachable, too slow or answering something that is not its documented shape: the
+            // English masterfile names are better than an empty picker.
+        }
+
         var data = await this._masterDataService.GetCostumeDataAsync();
         if (data == null)
         {
@@ -173,6 +190,46 @@ public partial class MasterDataController(
         }
 
         return this.Content(fallback, "application/json");
+    }
+
+    /// <summary>
+    /// PoracleNG's costume object (<c>{"1": {"id": 1, "name": "Holiday"}, ...}</c>) as the SPA's id-to-name map.
+    /// Null for a null or non-object answer; empty when nothing usable was in it.
+    /// </summary>
+    private static Dictionary<string, string>? FlattenCostumes(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        var names = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in doc.RootElement.EnumerateObject())
+        {
+            if (entry.Name == "0"
+                || entry.Value.ValueKind != System.Text.Json.JsonValueKind.Object
+                || !entry.Value.TryGetProperty("name", out var name)
+                || name.ValueKind != System.Text.Json.JsonValueKind.String)
+            {
+                continue;
+            }
+
+            var text = name.GetString();
+            if (string.IsNullOrWhiteSpace(text) || text.StartsWith("costume_", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            names[entry.Name] = text;
+        }
+
+        return names;
     }
 
     /// <summary>
