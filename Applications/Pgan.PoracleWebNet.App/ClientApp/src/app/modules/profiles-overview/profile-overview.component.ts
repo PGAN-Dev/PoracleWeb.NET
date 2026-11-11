@@ -30,6 +30,7 @@ import { IconService } from '../../core/services/icon.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { ProfileOverviewService } from '../../core/services/profile-overview.service';
 import { ProfileService } from '../../core/services/profile.service';
+import { RaidLevelService } from '../../core/services/raid-level.service';
 import { ActiveHoursChipComponent } from '../../shared/components/active-hours-chip/active-hours-chip.component';
 import {
   ActiveHoursEditorData,
@@ -38,9 +39,10 @@ import {
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { LocationWarningComponent } from '../../shared/components/location-warning/location-warning.component';
 import { TranslatePluralPipe } from '../../shared/pipes/translate-plural.pipe';
+import { eggTitle, fortTypeName, gymTeamName, lureTitle, maxBattleTitle, questTitle, raidTitle } from '../../shared/utils/alarm-titles';
 import { hasLevelFilter } from '../../shared/utils/pokemon-level';
 import { serverReason } from '../../shared/utils/server-reason';
-import { getGruntDisplayName } from '../invasions/invasion.constants';
+import { getGruntDisplayName, isEventType } from '../invasions/invasion.constants';
 import { ProfileAddDialogComponent } from '../profiles/profile-add-dialog.component';
 import { ProfileEditDialogComponent } from '../profiles/profile-edit-dialog.component';
 
@@ -55,6 +57,19 @@ interface ProfileGroup {
   alarmsByType: Map<string, ProfileOverviewAlarm[]>;
   profile: ProfileOverviewProfile;
   totalAlarms: number;
+}
+
+/**
+ * The alarms of one overview row. PoracleNG's snapshot carries Pokestop events (Showcase, Kecleon, Gold Stop) in
+ * the invasion array, as its v1 shape held them; the Dashboard, the nav and the pages count them apart from
+ * invasions, so this splits that array in two.
+ */
+function alarmsOfType(data: ProfileOverview, key: string): ProfileOverviewAlarm[] {
+  if (key === 'pokestopEvent') {
+    return ((data['invasion'] as ProfileOverviewAlarm[] | undefined) ?? []).filter(a => isEventType(a.grunt_type ?? null));
+  }
+  const alarms = (data[key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
+  return key === 'invasion' ? alarms.filter(a => !isEventType(a.grunt_type ?? null)) : alarms;
 }
 
 /** Alarm identity across types. Poracle numbers each tracking table separately, so uid alone is ambiguous. */
@@ -93,10 +108,19 @@ export class ProfileOverviewComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(MatDialog);
   private readonly i18n = inject(I18nService);
+  private readonly lookups = {
+    itemName: (id: number) => this.masterData.getItemName(id),
+    pokemonName: (id: number) => this.masterData.getPokemonName(id),
+  };
+
   private readonly masterData = inject(MasterDataService);
   private readonly profileOverviewService = inject(ProfileOverviewService);
   private readonly profileService = inject(ProfileService);
+  private readonly raidLevels = inject(RaidLevelService);
   private readonly snackBar = inject(MatSnackBar);
+
+  private readonly t = (key: string, params?: Record<string, unknown>) => this.i18n.instant(key, params);
+
   readonly activeProfileNo = signal<number>(1);
 
   readonly alarmTypes: AlarmTypeConfig[] = [
@@ -106,6 +130,7 @@ export class ProfileOverviewComponent implements OnInit {
     { color: '#d500f9', icon: 'flash_on', key: 'maxbattle', label: this.i18n.instant('PROFILES.TYPE_MAX_BATTLES') },
     { color: '#9c27b0', icon: 'assignment', key: 'quest', label: this.i18n.instant('PROFILES.TYPE_QUESTS') },
     { color: '#607d8b', icon: 'warning', key: 'invasion', label: this.i18n.instant('PROFILES.TYPE_INVASIONS') },
+    { color: '#03aeb6', icon: 'celebration', key: 'pokestopEvent', label: this.i18n.instant('NAV.POKESTOP_EVENTS') },
     { color: '#e91e63', icon: 'place', key: 'lure', label: this.i18n.instant('PROFILES.TYPE_LURES') },
     { color: '#8bc34a', icon: 'park', key: 'nest', label: this.i18n.instant('PROFILES.TYPE_NESTS') },
     { color: '#00bcd4', icon: 'fitness_center', key: 'gym', label: this.i18n.instant('PROFILES.TYPE_GYMS') },
@@ -128,7 +153,7 @@ export class ProfileOverviewComponent implements OnInit {
     const keys = new Set<string>();
 
     for (const type of this.alarmTypes) {
-      const alarms = (data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
+      const alarms = alarmsOfType(data, type.key);
       const keyMap = new Map<string, ProfileOverviewAlarm[]>();
 
       for (const alarm of alarms) {
@@ -180,9 +205,7 @@ export class ProfileOverviewComponent implements OnInit {
 
       if (data) {
         for (const type of this.alarmTypes) {
-          const alarms = ((data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? []).filter(
-            a => a.profile_no === profile.profile_no,
-          );
+          const alarms = alarmsOfType(data, type.key).filter(a => a.profile_no === profile.profile_no);
           if (alarms.length > 0) {
             alarmsByType.set(type.key, alarms);
             totalAlarms += alarms.length;
@@ -246,7 +269,7 @@ export class ProfileOverviewComponent implements OnInit {
     let totalAlarms = 0;
 
     for (const type of this.alarmTypes) {
-      const count = ((data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? []).length;
+      const count = alarmsOfType(data, type.key).length;
       typeCounts[type.key] = count;
       totalAlarms += count;
     }
@@ -397,13 +420,13 @@ export class ProfileOverviewComponent implements OnInit {
       return cleaned;
     };
 
+    // A backup keeps Pokestop events in the invasion array, as the import reads them there.
     const alarms: Record<string, Record<string, unknown>[]> = {};
     for (const type of this.alarmTypes) {
-      const typeAlarms = ((data[type.key as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? []).filter(
-        a => a.profile_no === profile.profile_no,
-      );
+      const typeAlarms = alarmsOfType(data, type.key).filter(a => a.profile_no === profile.profile_no);
       if (typeAlarms.length > 0) {
-        alarms[type.key] = typeAlarms.map(stripInternal);
+        const key = type.key === 'pokestopEvent' ? 'invasion' : type.key;
+        alarms[key] = [...(alarms[key] ?? []), ...typeAlarms.map(stripInternal)];
       }
     }
 
@@ -442,32 +465,28 @@ export class ProfileOverviewComponent implements OnInit {
         const form = this.masterData.getFormName(id, alarm.form ?? 0);
         return form ? `${name} (${form})` : name;
       }
-      case 'raid': {
-        const id = alarm.pokemon_id ?? alarm.raid_pokemon_id ?? 0;
-        if (id > 0 && id !== 9000) return this.masterData.getPokemonName(id);
-        const level = alarm.level ?? 9000;
-        if (level === 9000) return this.i18n.instant('PROFILES.ALL_RAIDS');
-        return level === 6 ? this.i18n.instant('PROFILES.ALL_MEGA_RAIDS') : this.i18n.instant('PROFILES.ALL_LEVEL_RAIDS', { level });
-      }
-      case 'egg': {
-        const level = alarm.level ?? 9000;
-        if (level === 9000) return this.i18n.instant('PROFILES.ALL_EGGS');
-        return level === 6 ? this.i18n.instant('PROFILES.MEGA_EGG') : this.i18n.instant('PROFILES.LEVEL_EGG', { level });
-      }
-      case 'quest': {
-        const rt = alarm.reward_type ?? 0;
-        const id = alarm.pokemon_id ?? alarm.reward ?? 0;
-        if (rt === 7 && id > 0) return this.masterData.getPokemonName(id);
-        if (rt === 7) return this.i18n.instant('PROFILES.ANY_POKEMON_ENCOUNTER');
-        if (rt === 12 && id > 0) return this.i18n.instant('PROFILES.MEGA_ENERGY', { name: this.masterData.getPokemonName(id) });
-        if (rt === 4 && id > 0) return this.i18n.instant('PROFILES.CANDY', { name: this.masterData.getPokemonName(id) });
-        if (rt === 3)
-          return alarm.amount ? `${alarm.amount}+ ${this.i18n.instant('PROFILES.STARDUST')}` : this.i18n.instant('PROFILES.STARDUST');
-        if (rt === 2 && (alarm.reward ?? 0) > 0) return this.masterData.getItemName(alarm.reward!);
-        if (rt === 2) return this.i18n.instant('PROFILES.ITEM_REWARD');
-        return this.i18n.instant('PROFILES.QUEST_REWARD');
-      }
+      case 'raid':
+        return raidTitle(
+          { level: alarm.level ?? 9000, pokemonId: alarm.pokemon_id ?? alarm.raid_pokemon_id ?? 0 },
+          this.t,
+          this.lookups,
+          this.raidLevels.byValue(),
+        );
+      case 'egg':
+        return eggTitle(alarm.level ?? 9000, this.t, this.raidLevels.byValue());
+      case 'quest':
+        return questTitle(
+          {
+            amount: alarm.amount ?? 0,
+            pokemonId: alarm.pokemon_id ?? 0,
+            reward: alarm.reward ?? 0,
+            rewardType: alarm.reward_type ?? 0,
+          },
+          this.t,
+          this.lookups,
+        );
       case 'invasion':
+      case 'pokestopEvent':
         return getGruntDisplayName(
           alarm.grunt_type ?? null,
           alarm.gender,
@@ -476,27 +495,19 @@ export class ProfileOverviewComponent implements OnInit {
           this.masterData.isGruntNameUntranslated(alarm.grunt_type ?? null, alarm.gender),
         );
       case 'lure':
-        return this.getLureName(alarm.lure_id ?? 0);
+        return alarm.lure_id ? lureTitle(alarm.lure_id, this.t) : this.i18n.instant('PROFILES.ALL_LURES');
       case 'nest': {
         const id = alarm.pokemon_id ?? 0;
         if (id === 0) return this.i18n.instant('PROFILES.ANY_NEST');
         const name = this.masterData.getPokemonName(id);
         return this.i18n.instant('PROFILES.POKEMON_NEST', { name });
       }
-      case 'gym': {
-        const team = alarm.team ?? 0;
-        if (alarm.slot_changes || alarm.battle_changes) return this.i18n.instant('PROFILES.GYM_ACTIVITY');
-        if (team === 0 || team === 4) return this.i18n.instant('PROFILES.ANY_TEAM');
-        return this.getTeamName(team);
-      }
-      case 'maxbattle': {
-        const id = alarm.pokemon_id ?? 9000;
-        if (id > 0 && id !== 9000) return this.masterData.getPokemonName(id);
-        const level = alarm.level ?? 0;
-        return this.getMaxBattleLabel(level);
-      }
+      case 'gym':
+        return gymTeamName(alarm.team ?? 0, this.t);
+      case 'maxbattle':
+        return maxBattleTitle(alarm.pokemon_id, this.t, this.lookups);
       case 'fort': {
-        const fortType = this.formatFortType(alarm.fort_type ?? null);
+        const fortType = fortTypeName(alarm.fort_type ?? null, this.t);
         const changes = this.formatChangeTypes(alarm.change_types ?? null);
         return changes ? `${fortType} · ${changes}` : fortType;
       }
@@ -550,7 +561,8 @@ export class ProfileOverviewComponent implements OnInit {
       case 'quest':
         return `quest:${alarm.pokemon_id ?? 0}:${alarm.reward_type ?? 0}:${alarm.reward ?? 0}`;
       case 'invasion':
-        return `invasion:${alarm.grunt_type ?? ''}`;
+      case 'pokestopEvent':
+        return `${type}:${alarm.grunt_type ?? ''}`;
       case 'lure':
         return `lure:${alarm.lure_id ?? 0}`;
       case 'nest':
@@ -571,7 +583,7 @@ export class ProfileOverviewComponent implements OnInit {
     if (!data) return [];
 
     const key = this.getAlarmKey(alarm, type);
-    const alarms = (data[type as keyof ProfileOverview] as ProfileOverviewAlarm[] | undefined) ?? [];
+    const alarms = alarmsOfType(data, type);
     const profileMap = new Map(data.profile.map(p => [p.profile_no, p.name]));
 
     const others = alarms
@@ -584,6 +596,25 @@ export class ProfileOverviewComponent implements OnInit {
 
   getManagedProfile(profileNo: number): Profile | undefined {
     return this.managedProfiles().find(p => p.profileNo === profileNo);
+  }
+
+  /** Tier label for a Max battle pill, worded as the Max battles page words it. */
+  getMaxBattleLevelLabel(level: number): string {
+    switch (level) {
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+        return this.i18n.instant('MAX_BATTLES.STAR_LABEL', { stars: level });
+      case 5:
+        return this.i18n.instant('MAX_BATTLES.STAR_LEGENDARY', { stars: 5 });
+      case 7:
+        return this.i18n.instant('MAX_BATTLES.GIGANTAMAX');
+      case 8:
+        return this.i18n.instant('MAX_BATTLES.LEGENDARY_GIGANTAMAX');
+      default:
+        return this.i18n.instant('MAX_BATTLES.LEVEL_NUM', { level });
+    }
   }
 
   getTypeConfig(key: string): AlarmTypeConfig {
@@ -776,68 +807,6 @@ export class ProfileOverviewComponent implements OnInit {
       return types.map(t => labels[t] ?? t).join(', ');
     } catch {
       return raw;
-    }
-  }
-
-  private formatFortType(type: string | null): string {
-    switch (type) {
-      case 'pokestop':
-        return this.i18n.instant('PROFILES.POKESTOP_CHANGES');
-      case 'gym':
-        return this.i18n.instant('PROFILES.GYM_CHANGES');
-      default:
-        return this.i18n.instant('PROFILES.ALL_FORT_CHANGES');
-    }
-  }
-
-  private getLureName(id: number): string {
-    switch (id) {
-      case 0:
-        return this.i18n.instant('PROFILES.ALL_LURES');
-      case 501:
-        return this.i18n.instant('PROFILES.LURE_NORMAL');
-      case 502:
-        return this.i18n.instant('PROFILES.LURE_GLACIAL');
-      case 503:
-        return this.i18n.instant('PROFILES.LURE_MOSSY');
-      case 504:
-        return this.i18n.instant('PROFILES.LURE_MAGNETIC');
-      case 505:
-        return this.i18n.instant('PROFILES.LURE_RAINY');
-      case 506:
-        return this.i18n.instant('PROFILES.LURE_GOLDEN');
-      default:
-        return this.i18n.instant('PROFILES.LURE_NUM', { id });
-    }
-  }
-
-  private getMaxBattleLabel(level: number): string {
-    switch (level) {
-      case 1:
-      case 2:
-      case 3:
-      case 4:
-      case 5:
-        return this.i18n.instant('PROFILES.STAR_MAX_BATTLE', { stars: level });
-      case 7:
-        return this.i18n.instant('PROFILES.GIGANTAMAX');
-      case 8:
-        return this.i18n.instant('PROFILES.LEGENDARY_GIGANTAMAX');
-      default:
-        return this.i18n.instant('PROFILES.ANY_MAX_BATTLE');
-    }
-  }
-
-  private getTeamName(team: number): string {
-    switch (team) {
-      case 1:
-        return this.i18n.instant('PROFILES.TEAM_MYSTIC');
-      case 2:
-        return this.i18n.instant('PROFILES.TEAM_VALOR');
-      case 3:
-        return this.i18n.instant('PROFILES.TEAM_INSTINCT');
-      default:
-        return this.i18n.instant('PROFILES.TEAM_NUM', { team });
     }
   }
 

@@ -6,3 +6,8 @@
   margin-bottom: 16px;
   line-height: 1.5;
 }
+
+// See profile-add-dialog.component.scss: a bare ngModel never shows <mat-error>.
+.name-conflict {
+  color: var(--mat-sys-error, #b3261e);
+}

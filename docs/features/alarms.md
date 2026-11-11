@@ -255,7 +255,7 @@ Delete is the one red, filled button in the bar, and Change radius sits beside i
     |---|---|
     | "Skipped N limited to areas: a radius doesn't apply to them." | The alarm is limited to specific areas, which can't take a radius |
     | "Skipped N measured from a saved place: they need a radius." | The alarm measures from a saved place, so a zero can't apply |
-    | "Skipped N that would clash with another rule." | At the new radius it would match another alarm you have exactly, or close enough that PoracleNG would merge the two. A refusal PoracleNG gives no clearer reason for is counted here too |
+    | "Skipped N that would clash with another rule." followed by "Not changed: …" | At the new radius it would match another alarm you have exactly, or close enough that PoracleNG would merge the two. A refusal PoracleNG gives no clearer reason for is counted here too. The second line names up to three of the alarms, then how many more |
 
     Every alarm that was changed keeps its id. The cleaning toggle works the same way, changing only the clean setting.
 
@@ -288,11 +288,11 @@ The new profile inherits the source profile's areas, location, active hours and 
 
 Export writes a per-profile JSON backup of every alarm filter, without the internal fields (`uid`, `id`, `profile_no`), in the form `{ version: 1, exportedAt, profileName, alarms: { pokemon: [...], raid: [...], ... } }`.
 
-Import reads a backup into a new profile. The alarms are written straight to the new profile, so your active profile stays as it was, and every alarm is checked before the first one is saved. An alarm that already exists on the new profile, or would replace another, is skipped. Invasion rows that are really Pokéstop events (Kecleon, Gold Stop, Showcase) are saved as event rules, and a grunt saved as `metal` is imported as `steel`. A name you already use gets a numeric suffix, "Home (2)".
+Import reads a backup into a new profile. The alarms are written straight to the new profile, so your active profile stays as it was, and every alarm is checked before the first one is saved. An alarm that already exists on the new profile, or would replace another, is skipped. Invasion rows that are really Pokéstop events (Kecleon, Gold Stop, Showcase) are saved as event rules, and a grunt saved as `metal` is imported as `steel`. A name you already use is refused in the dialog: it starts with the name from the file, and **Import** stays off until you change it.
 
 ### Profile names
 
-The server doesn't require profile names to be unique, and accepts up to 255 characters. The dialogs are stricter: the add, duplicate and import dialogs flag a name you already use as you type, the edit dialog checks when you save, and the add and edit dialogs stop at 32 characters. Only import changes a clashing name itself, by adding a numeric suffix.
+The server doesn't require profile names to be unique, and accepts up to 255 characters. The dialogs are stricter: the add, edit, duplicate and import dialogs all flag a name you already use as you type and keep their button off until you change it, and the add and edit dialogs stop at 32 characters. Nothing renames a clashing name for you.
 
 ## Pokemon alarm filters
 

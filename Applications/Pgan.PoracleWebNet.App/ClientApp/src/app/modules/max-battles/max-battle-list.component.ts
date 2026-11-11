@@ -41,8 +41,9 @@ import {
 } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { maxBattleTitle } from '../../shared/utils/alarm-titles';
 import { runBulkMove } from '../../shared/utils/bulk-move';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny, skippedNames } from '../../shared/utils/distance-update';
 import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
@@ -201,7 +202,12 @@ export class MaxBattleListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadData();
       this.snackBar.open(
-        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? ids.length), this.i18n),
+        distanceUpdateMessage(
+          result,
+          this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? ids.length),
+          this.i18n,
+          skippedNames(result?.skippedConflict, this.maxBattles(), i => this.getTitle(i)),
+        ),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,
@@ -343,10 +349,10 @@ export class MaxBattleListComponent implements OnInit {
   }
 
   getTitle(maxBattle: MaxBattle): string {
-    if (maxBattle.pokemonId && maxBattle.pokemonId !== 9000) {
-      return this.masterData.getPokemonName(maxBattle.pokemonId);
-    }
-    return this.i18n.instant('MAX_BATTLES.ANY_POKEMON');
+    return maxBattleTitle(maxBattle.pokemonId, (key, params) => this.i18n.instant(key, params), {
+      itemName: () => '',
+      pokemonName: id => this.masterData.getPokemonName(id),
+    });
   }
 
   /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */

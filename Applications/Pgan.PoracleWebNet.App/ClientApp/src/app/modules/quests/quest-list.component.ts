@@ -44,8 +44,9 @@ import {
 } from '../../shared/utils/alarm-list-query';
 import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
+import { questRewardTypeLabel, questTitle } from '../../shared/utils/alarm-titles';
 import { runBulkMove } from '../../shared/utils/bulk-move';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny, skippedNames } from '../../shared/utils/distance-update';
 import { questRewardIcon } from '../../shared/utils/quest-reward-icon';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -212,7 +213,12 @@ export class QuestListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadQuests();
       this.snackBar.open(
-        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
+        distanceUpdateMessage(
+          result,
+          this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length),
+          this.i18n,
+          skippedNames(result?.skippedConflict, this.quests(), i => this.getQuestTitle(i)),
+        ),
         this.i18n.instant('TOAST.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,
@@ -322,30 +328,14 @@ export class QuestListComponent implements OnInit {
   }
 
   getQuestTitle(quest: Quest): string {
-    const reward = this.describeReward(quest);
-
-    // The minimum only applies to the rewards that come in quantities, and saying "1x" for a rule that
-    // asks for one of something is noise.
-    return quest.amount > 1 ? this.i18n.instant('QUESTS.AMOUNT_PREFIX', { count: quest.amount, reward }) : reward;
+    return questTitle(quest, (key, params) => this.i18n.instant(key, params), {
+      itemName: id => this.masterData.getItemName(id),
+      pokemonName: id => this.masterData.getPokemonName(id),
+    });
   }
 
   getRewardTypeLabel(rewardType: number): string {
-    switch (rewardType) {
-      case 7:
-        return this.i18n.instant('QUESTS.REWARD_POKEMON');
-      case 2:
-        return this.i18n.instant('QUESTS.REWARD_ITEM');
-      case 3:
-        return this.i18n.instant('QUESTS.STARDUST');
-      case 12:
-        return this.i18n.instant('QUESTS.REWARD_MEGA_ENERGY');
-      case 4:
-        return this.i18n.instant('QUESTS.REWARD_CANDY');
-      case 8:
-        return this.i18n.instant('QUESTS.POKECOINS');
-      default:
-        return this.i18n.instant('QUESTS.REWARD_TYPE_PREFIX', { type: rewardType });
-    }
+    return questRewardTypeLabel(rewardType, (key, params) => this.i18n.instant(key, params));
   }
 
   /** True when the auto-delete bit (clean bit 1) is set, ignoring the edit-in-place / summary bits. */
@@ -440,41 +430,6 @@ export class QuestListComponent implements OnInit {
     return quest
       ? ruleSummary(this.getQuestTitle(quest), quest, this.profileAreas(), this.translate, area => this.areaNames.label(area))
       : null;
-  }
-
-  private describeReward(quest: Quest): string {
-    // Pokemon encounter: ID may be in pokemonId or reward field
-    const pokemonId = quest.pokemonId > 0 ? quest.pokemonId : quest.reward;
-    if (quest.rewardType === 7 && pokemonId > 0) {
-      return this.masterData.getPokemonName(pokemonId);
-    }
-    if (quest.rewardType === 7 && pokemonId === 0) {
-      return this.i18n.instant('QUESTS.ANY_POKEMON_ENCOUNTER');
-    }
-    if (quest.rewardType === 12 && pokemonId > 0) {
-      return this.i18n.instant('QUESTS.MEGA_ENERGY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
-    }
-    if (quest.rewardType === 4 && pokemonId > 0) {
-      return this.i18n.instant('QUESTS.CANDY_SUFFIX', { name: this.masterData.getPokemonName(pokemonId) });
-    }
-    if (quest.rewardType === 2) {
-      // reward 0 is the dialog default, meaning any item. getItemName has no id 0, so this used to
-      // render as "Item #0" -- the Pokemon branch above already has the equivalent "any" case.
-      return quest.reward > 0 ? this.masterData.getItemName(quest.reward) : this.i18n.instant('QUESTS.ANY_ITEM');
-    }
-    if (quest.rewardType === 3) {
-      return quest.reward > 0
-        ? this.i18n.instant('QUESTS.STARDUST_AMOUNT', { amount: quest.reward })
-        : this.i18n.instant('QUESTS.STARDUST');
-    }
-    // Ungated on purpose: a pokecoin rule set with the bot, or left behind by a PoracleNG downgrade,
-    // still has to be readable and deletable here. Only creating one asks whether the server can.
-    if (quest.rewardType === 8) {
-      return quest.reward > 0
-        ? this.i18n.instant('QUESTS.POKECOINS_AMOUNT', { amount: quest.reward })
-        : this.i18n.instant('QUESTS.POKECOINS');
-    }
-    return this.getRewardTypeLabel(quest.rewardType);
   }
 
   private loadProfileAreas(): void {

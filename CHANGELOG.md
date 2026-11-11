@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Renaming a profile to a name you already use now says so.** The edit dialog did nothing, showed nothing and dropped its character counter; it now shows "A profile with this name already exists" and keeps Save off until you change the name, as the add dialog does. The duplicate dialog warns as you type too.
+- **The Help and docs describe what Import does with a taken name.** Import doesn't add a number such as "Home (2)": the dialog starts with the name from the file, says when you already use it, and keeps Import off until you change it.
+- **The Profiles page files Pokéstop events (Showcase, Kecleon, Gold Stop) under their own row and chip,** apart from Invasions, as the Dashboard does. Export still writes them into the invasion list, where Import reads them.
+- **Rules have the same name on the Profiles page as on their own pages.** "All Legendary raids" and "3 star Egg" rather than "All level 5 raids" and "Level 3 egg", and likewise for lures, gyms, Max battles, fort changes and quest rewards. A Max battle's tier shows as a pill.
+- **A bulk radius change that skips rules because they would clash now names them** ("Not changed: Pikachu, Mewtwo +2") on every alarm page, instead of only counting them.
+- **The "Already covered by" banner in add dialogs stays clear of the content above it.** It no longer shrinks or sits under a tall tab such as the raid level chips.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

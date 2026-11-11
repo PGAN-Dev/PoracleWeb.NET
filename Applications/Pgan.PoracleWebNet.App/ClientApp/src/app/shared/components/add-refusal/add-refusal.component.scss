@@ -1,12 +1,17 @@
 :host {
   display: block;
+  // The banner sits between the dialog's scrolling content and its buttons. It never shrinks, and it
+  // paints above the content, so a tall tab (the raid level chips) cannot show through it.
+  flex: none;
+  position: relative;
+  z-index: 1;
 }
 
 .add-refusal {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin: 0 24px 8px;
+  margin: 8px 24px;
   padding: 10px 12px;
   border-radius: 8px;
   background: var(--mat-sys-error-container, #f9dedc);

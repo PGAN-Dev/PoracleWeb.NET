@@ -160,4 +160,38 @@ describe('ProfileOverviewComponent duplicate detection', () => {
 
     expect(component.getDuplicateProfiles(monster(1, 1) as never, 'pokemon')).toEqual(['Work']);
   });
+
+  /**
+   * Pokéstop events (Showcase, Kecleon, Gold Stop) arrive in the snapshot's invasion array, as PoracleNG's
+   * v1 shape held them. The Dashboard and the nav count them apart from invasions, so the overview did
+   * the same only after this split.
+   */
+  describe('Pokéstop events', () => {
+    const invasion = (uid: number, gruntType: string) => ({ uid, distance: 0, grunt_type: gruntType, profile_no: 1 });
+
+    it('files an event under its own row, not under Invasions', () => {
+      component.overview.set(overview({ invasion: [invasion(1, 'mixed'), invasion(2, 'showcase'), invasion(3, 'kecleon')] }));
+
+      const group = component.profiles()[0];
+
+      expect(group.alarmsByType.get('invasion')?.map(a => a.uid)).toEqual([1]);
+      expect(group.alarmsByType.get('pokestopEvent')?.map(a => a.uid)).toEqual([2, 3]);
+      expect(component.stats().typeCounts['invasion']).toBe(1);
+      expect(component.stats().typeCounts['pokestopEvent']).toBe(2);
+    });
+
+    it('still lists a plain grunt rule under Invasions and counts it once in the total', () => {
+      component.overview.set(overview({ invasion: [invasion(1, 'water')] }));
+
+      expect(component.profiles()[0].alarmsByType.get('invasion')?.length).toBe(1);
+      expect(component.profiles()[0].alarmsByType.has('pokestopEvent')).toBe(false);
+      expect(component.stats().totalAlarms).toBe(1);
+    });
+
+    it('does not call an event and an invasion with the same uid duplicates of each other', () => {
+      component.overview.set(overview({ invasion: [invasion(5, 'water'), { ...invasion(5, 'showcase'), profile_no: 2 }] }));
+
+      expect(component.duplicateKeys().size).toBe(0);
+    });
+  });
 });

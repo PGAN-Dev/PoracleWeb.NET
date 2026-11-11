@@ -320,6 +320,10 @@
                               <span class="filter-pill team-pill">{{ key | translate }}</span>
                             }
                           }
+                          <!-- Max battle tier: the title is the Pokemon, so the tier rides as a pill -->
+                          @if (type.key === 'maxbattle' && alarm.level && alarm.level !== 9000) {
+                            <span class="filter-pill level-pill">{{ getMaxBattleLevelLabel(alarm.level) }}</span>
+                          }
                           <!-- Quest pills -->
                           @if (type.key === 'quest') {
                             @if (alarm.shiny === 1) {
