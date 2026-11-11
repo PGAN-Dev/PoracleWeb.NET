@@ -245,6 +245,26 @@ describe('AuthService', () => {
       expect(router.navigate).toHaveBeenCalledWith(['/login'], { queryParams: { loggedout: 1 } });
     });
 
+    it('forgets a noted outage, so a sign-in during the next one is told and retried', async () => {
+      // logout() drops the token without going through clearSession(), so the once-per-outage flag
+      // survived it: a member who signed out mid-outage and signed in again while /me still failed got
+      // neither the toast nor the retry chain, and the page sat empty.
+      localStorage.setItem('poracle_token', 'some-token');
+      const first = service.loadCurrentUser();
+      httpMock.expectOne(`${API}/api/auth/me`).flush(null, { status: 503, statusText: 'x' });
+      await first;
+      expect(service.noteSessionUnavailable()).toBe(true);
+
+      service.logout();
+      await Promise.resolve();
+      localStorage.setItem('poracle_token', 'next-token');
+      const second = service.loadCurrentUser();
+      httpMock.expectOne(`${API}/api/auth/me`).flush(null, { status: 503, statusText: 'x' });
+      await second;
+
+      expect(service.noteSessionUnavailable()).toBe(true);
+    });
+
     /**
      * The app shell has one router outlet in its signed-in layout and another in its signed-out one.
      * Clearing the user swapped layouts while the router was still on the page being left, so the new
