@@ -72,6 +72,8 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   private readonly settingsService = inject(SettingsService);
 
   private readonly snackBar = inject(MatSnackBar);
+  /** True once the member has set a value, so the 0,0 hint is not shown on a dialog they have not touched. */
+  private readonly touched = signal(false);
   /**
    * `pickOnly` borrows this dialog as a coordinate picker without touching the profile pin. Saving
    * unconditionally is what the dialog was for, so a caller that only wants a point (naming a place,
@@ -86,9 +88,9 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
    */
   readonly geocodingDisabled = this.settingsService.isDisabled('disable_nominatim');
   latitude = this.data?.latitude ?? 0;
+
   /** Shows the coordinate's own error as soon as it is wrong, not only after the field loses focus. */
   readonly latitudeMatcher: ErrorStateMatcher = { isErrorState: () => this.latitudeError() !== null };
-
   readonly locating = signal(false);
   longitude = this.data?.longitude ?? 0;
   readonly longitudeMatcher: ErrorStateMatcher = { isErrorState: () => this.longitudeError() !== null };
@@ -172,7 +174,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
    * 400 behind a generic toast. `Number.isFinite` refuses null, empty and NaN alike.
    */
   isValid(): boolean {
-    return this.latitudeError() === null && this.longitudeError() === null && !this.originPinHint();
+    return this.latitudeError() === null && this.longitudeError() === null && !this.isOrigin();
   }
 
   /** The translation key for what is wrong with the latitude, or null when it is usable. */
@@ -216,6 +218,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   }
 
   onCoordsChanged(): void {
+    this.touched.set(true);
     if (this.isValid()) {
       this.updateMap();
       this.reverseGeocodeCurrentCoords();
@@ -237,10 +240,12 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   /**
    * True for exactly 0,0. PoracleNG stores "no pin" as 0,0, so saving it reported success and the pin read
    * "No pin set" on the next load, with the previous real pin gone. Only the exact pair: a point near the
-   * equator or the prime meridian is a real place. Clear pin is the way to remove a pin.
+   * equator or the prime meridian is a real place. Clear pin is the way to remove a pin. The hint waits
+   * until the member has set a value: a dialog with no stored pin opens at 0,0 and must not scold at once.
+   * Save stays off either way (`isValid`).
    */
   originPinHint(): boolean {
-    return this.latitudeError() === null && this.longitudeError() === null && this.latitude === 0 && this.longitude === 0;
+    return this.touched() && this.isOrigin();
   }
 
   /**
@@ -249,6 +254,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
    * moved away from it.
    */
   pickPoint(lat: number, lng: number): void {
+    this.touched.set(true);
     this.latitude = parseFloat(lat.toFixed(6));
     this.longitude = parseFloat(lng.toFixed(6));
     this.updateMarker();
@@ -282,6 +288,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
   }
 
   selectResult(result: GeocodingResult): void {
+    this.touched.set(true);
     this.latitude = result.latitude;
     this.longitude = result.longitude;
     this.searchQuery = result.displayName;
@@ -307,6 +314,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
     this.locating.set(true);
     navigator.geolocation.getCurrentPosition(
       position => {
+        this.touched.set(true);
         this.latitude = position.coords.latitude;
         this.longitude = position.coords.longitude;
         this.locating.set(false);
@@ -353,6 +361,10 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
 
     // Fix map sizing in dialog
     setTimeout(() => this.map?.invalidateSize(), 100);
+  }
+
+  private isOrigin(): boolean {
+    return this.latitudeError() === null && this.longitudeError() === null && this.latitude === 0 && this.longitude === 0;
   }
 
   private reverseGeocodeCurrentCoords(): void {
