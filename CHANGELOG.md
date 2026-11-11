@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The API now refuses to delete an account's only profile.** Only the web page blocked it, and only for the active profile, so a direct `DELETE /api/profiles/{n}` (an impersonation or destination session, or any API client) on a single-profile account returned 204 and left that profile's alarms orphaned at its number, ready to attach to whichever profile was created there next. PoracleWeb.NET now answers 400 `You can't delete your only profile.` Deleting any profile while another exists, the active one included, works as before.
+
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11
