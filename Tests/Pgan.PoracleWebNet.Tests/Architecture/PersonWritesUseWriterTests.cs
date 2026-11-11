@@ -9,7 +9,7 @@ namespace Pgan.PoracleWebNet.Tests.Architecture;
 /// without it would quietly update one side, so this fails the build when it appears.
 /// </summary>
 /// <remarks>
-/// Service calls that write by themselves (<c>CopyAsync</c>, the overview duplicate and import) are listed
+/// Service calls that write by themselves (the overview duplicate and import) are listed
 /// beside the proxy members: a controller wraps them as it does the proxy.
 /// </remarks>
 public sealed class PersonWritesUseWriterTests
@@ -29,7 +29,7 @@ public sealed class PersonWritesUseWriterTests
     ];
 
     private static readonly Regex Writes = new(
-        @"_\w+\.(SetLocationAsync|AddPlaceAsync|UpdatePlaceAsync|DeletePlaceAsync|SetProfileGeographyAsync|AddProfileAsync|UpdateProfileAsync|DeleteProfileAsync|SwitchProfileAsync|CopyProfileAsync|SetLanguageAsync|StartAsync|StopAsync|SaveSelectionAsync|MirrorSelectionAsync|AddToActiveProfileAsync|RemoveFromActiveProfileAsync|SetScheduleAsync|DeleteScheduleAsync|CopyAsync|DuplicateProfileAsync|ImportAlarmsAsync)\(" +
+        @"_\w+\.(SetLocationAsync|AddPlaceAsync|UpdatePlaceAsync|DeletePlaceAsync|SetProfileGeographyAsync|AddProfileAsync|UpdateProfileAsync|DeleteProfileAsync|SwitchProfileAsync|CopyProfileAsync|SetLanguageAsync|StartAsync|StopAsync|SaveSelectionAsync|MirrorSelectionAsync|AddToActiveProfileAsync|RemoveFromActiveProfileAsync|SetScheduleAsync|DeleteScheduleAsync|DuplicateProfileAsync|ImportAlarmsAsync)\(" +
         @"|_muteProxy\.(CreateAsync|DeleteAsync|DeleteAllAsync)\(",
         RegexOptions.Compiled);
 
