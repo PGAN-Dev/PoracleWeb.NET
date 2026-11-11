@@ -176,9 +176,19 @@ public partial class AreaController(
     [RequireFeatureEnabled(DisableFeatureKeys.Areas)]
     public async Task<IActionResult> UpdateAreas([FromBody] UpdateAreasRequest request)
     {
+        // {} / {"areas":null} / a misspelt key all bind as null. That used to save an empty list and clear
+        // every subscription with a 200; only an explicit [] clears.
+        if (request.Areas is null)
+        {
+            return this.BadRequest(new
+            {
+                error = "areas is required. Send an empty list to clear every area."
+            });
+        }
+
         // Lowercase area names because Poracle matches areas case-sensitively.
         // A null entry used to throw an NRE here and surface as a 500.
-        if (request.Areas is not null && Array.Exists(request.Areas, a => a is null))
+        if (Array.Exists(request.Areas, a => a is null))
         {
             return this.BadRequest(new
             {
@@ -186,9 +196,7 @@ public partial class AreaController(
             });
         }
 
-        var normalizedAreas = request.Areas != null && request.Areas.Length > 0
-            ? request.Areas.Select(a => a.ToLowerInvariant()).ToArray()
-            : [];
+        var normalizedAreas = request.Areas.Select(a => a.ToLowerInvariant()).ToArray();
 
         // One trusted write for the whole list. PoracleWeb.NET authorises the names first (a trusted write
         // skips PoracleNG's own filter), so a fence the user may not have is refused with a 400 naming it

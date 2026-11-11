@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A body that leaves out `areas` or `distance` is refused instead of clearing things.** `PUT /api/areas` with `{}`, `{"areas": null}` or a misspelt key saved an empty list and dropped every area subscription with a 200; it now answers 400, and only an explicit empty list clears. `PUT /api/{type}/distance/bulk` with `uids` but no `distance` bound the radius as 0 and switched every named alarm to area-based delivery; `distance` is required on the wire now and a missing or null value is a 400. An explicit 0 still clears the radius. The web app always sent both fields, so nothing changes for it.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

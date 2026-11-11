@@ -181,15 +181,24 @@ public class AreaControllerTests : ControllerTestBase
         Assert.Equal(["west", "east"], Assert.IsType<string[]>(ok.Value));
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public async Task UpdateAreasSavesAnEmptyListWhenAreasAreNullOrEmpty(bool isNull)
+    [Fact]
+    public async Task UpdateAreasSavesAnEmptyListWhenAreasAreEmpty()
     {
-        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = isNull ? null : [] });
+        await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = [] });
 
         this._areaWriter.Verify(w => w.SaveSelectionAsync("123456789",
             It.Is<IReadOnlyCollection<string>>(c => c.Count == 0)), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAreasRefusesAMissingListWithoutWriting()
+    {
+        // {} / {"areas":null} / a misspelt key all bind as null. That used to clear every subscription; an
+        // explicit [] is the only way to clear.
+        var result = await this._sut.UpdateAreas(new AreaController.UpdateAreasRequest { Areas = null });
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        this._areaWriter.Verify(w => w.SaveSelectionAsync(It.IsAny<string>(), It.IsAny<IReadOnlyCollection<string>>()), Times.Never);
     }
 
     [Fact]
