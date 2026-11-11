@@ -240,6 +240,13 @@
   table {
     min-width: 960px;
   }
+  // The actions column is pinned to the right edge (stickyEnd), so View and the row menu never scroll away.
+  // The shadow on its left edge is the cue that the other columns continue underneath it.
+  .mat-mdc-header-cell.mat-column-actions,
+  .mat-mdc-cell.mat-column-actions {
+    background: var(--mat-table-background-color, var(--mat-sys-surface));
+    box-shadow: -8px 0 8px -6px rgba(0, 0, 0, 0.3);
+  }
 }
 .text-muted {
   color: var(--text-hint, rgba(0, 0, 0, 0.6));

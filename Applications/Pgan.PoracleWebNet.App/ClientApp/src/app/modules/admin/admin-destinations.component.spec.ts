@@ -75,6 +75,16 @@ describe('AdminDestinationsComponent delegates column', () => {
     expect(ids).not.toContain('admin1');
   });
 
+  it('pins the actions column to the right edge, so the row actions stay reachable on a phone', () => {
+    const fixture = setup();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const cells = root.querySelectorAll('td.mat-column-actions, th.mat-column-actions');
+    expect(cells.length).toBeGreaterThan(1);
+    cells.forEach(c => expect(c.classList).toContain('mat-mdc-table-sticky'));
+    expect(root.querySelectorAll('td.mat-mdc-table-sticky')).toHaveLength(root.querySelectorAll('td.mat-column-actions').length);
+  });
+
   it('shows an empty column, not the admins, on a hook nobody was granted', () => {
     const fixture = setup();
 
