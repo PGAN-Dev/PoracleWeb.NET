@@ -647,7 +647,9 @@ The modes combine (a quest can be both auto-delete and daily-summary, for exampl
 #### Edits the server decides
 
 PoracleNG 5.4.0 lets the operator list alert types that edit the original alert in place whatever the
-rule says (`[tracking] default_edit`; the supported types are pokemon, raid, egg, lure and incident).
+rule says (`[tracking] default_edit`; the supported types are pokemon, raid, egg, lure and incident,
+where incident reaches Showcases only: Kecleon and Gold Stop alerts take PoracleNG's invasion path,
+which never edits, so their cards never show the tag).
 The stored rule is left alone, so a rule without the edit bit still edits while its type is listed, and
 goes back to fresh messages when it is taken off the list. PoracleWeb.NET reads the list from PoracleNG
 and shows it rather than pretending the bit is the whole story: a card for a listed type whose rule

@@ -322,6 +322,15 @@ export class PokestopEventListComponent implements OnInit {
     return isAutoDelete(clean);
   }
 
+  /**
+   * Whether PoracleNG's `default_edit` for `incident` reaches this rule. Only its showcase path applies
+   * the default; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so the
+   * server-default tag would promise an edit those members never get.
+   */
+  isShowcase(item: PokestopEvent): boolean {
+    return pokestopEventInfo(item.displayType)?.name === 'showcase';
+  }
+
   /** `then` runs once the list has answered, loaded or not. */
   loadItems(then?: () => void): void {
     this.loading.set(true);

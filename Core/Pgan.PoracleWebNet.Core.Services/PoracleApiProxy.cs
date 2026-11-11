@@ -368,10 +368,6 @@ public class PoracleApiProxy(
     }
 
     /// <summary>
-    /// Localized monster master data from <c>/api/masterdata/monsters</c>. Older PoracleJS builds do
-    /// not serve this route, so a 404 is a normal outcome and yields <c>null</c> rather than throwing.
-    /// </summary>
-    /// <summary>
     /// <c>GET /api/masterdata/costumes?locale=</c>, a 5.4.0 route (jfberry/PoracleNG#217): an object keyed by
     /// costume id whose values are <c>{id, name}</c>, the name translated where PoracleNG's locale bundle has it
     /// and the raw masterfile's English otherwise. A server without the route answers 404, which yields
@@ -391,6 +387,10 @@ public class PoracleApiProxy(
         return await response.Content.ReadAsStringAsync();
     }
 
+    /// <summary>
+    /// Localized monster master data from <c>/api/masterdata/monsters</c>. Older PoracleJS builds do
+    /// not serve this route, so a 404 is a normal outcome and yields <c>null</c> rather than throwing.
+    /// </summary>
     public async Task<string?> GetMonstersAsync(string locale)
     {
         var request = this.CreateRequest(HttpMethod.Get,
