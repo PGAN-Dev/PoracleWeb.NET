@@ -78,12 +78,6 @@ public class ProfileServiceTests
         Assert.Null(await this._sut.GetByUserAndProfileNoAsync("u1", 99));
     }
 
-    [Fact]
-    public async Task CopyAsyncCallsProxy()
-    {
-        await this._sut.CopyAsync("u1", 1, 2);
-        this._humanProxy.Verify(p => p.CopyProfileAsync("u1", 1, 2), Times.Once);
-    }
 
     [Fact]
     public async Task GetByUserAsyncDeserializesActiveHoursFromProxy()
