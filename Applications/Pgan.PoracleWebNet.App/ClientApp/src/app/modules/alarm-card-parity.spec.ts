@@ -87,6 +87,16 @@ describe('every alarm list uses the shared rule card and toolbar', () => {
     expect(html).not.toMatch(/<mat-icon[^>]*>send<\/mat-icon>/);
   });
 
+  /**
+   * Every card's Edit and Delete are icon buttons named just "Edit" and "Delete". The card is a labelled group
+   * whose name is its title, so a screen reader hears which alarm: each card must therefore project a title.
+   */
+  it.each(LISTS)('%s gives every card a title, which names the card and its Edit and Delete', (template, grids) => {
+    const html = read(template);
+
+    expect(html.split('<span ruleTitle>').length - 1).toBe(grids.length);
+  });
+
   it.each(LISTS)('%s has the shared toolbar with search and sort', template => {
     const html = read(template);
 

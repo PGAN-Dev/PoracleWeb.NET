@@ -50,6 +50,20 @@ public sealed partial class PoracleIncidentProxy(
     {
         var list = rules.ToList();
         var trusted = await this.AuthoriseOverrideAreasAsync(userId, list, storedOnRule: null);
+        var distances = list.Select(r => r.Distance).ToList();
+        if (trusted)
+        {
+            // One trusted flag covers every rule in the POST, and PoracleNG skips its max_distance clamp for all
+            // of them, so a rule beside an override-area rule is capped here (see PoracleTrackingProxy).
+            for (var i = 0; i < distances.Count; i++)
+            {
+                if (distances[i] > 0)
+                {
+                    distances[i] = await this._areaPolicy.ClampDistanceAsync(userId, distances[i]);
+                }
+            }
+        }
+
         if (trusted && !dryRun)
         {
             // The commit carries only the rules the dry run found new (IncidentCreateProtocol), and each is an insert.
@@ -59,7 +73,7 @@ public sealed partial class PoracleIncidentProxy(
             }
         }
 
-        var payload = "[" + string.Join(",", list.Select(RuleJson)) + "]";
+        var payload = "[" + string.Join(",", list.Select((r, i) => RuleJson(r, distances[i]))) + "]";
         var url = $"{this.Route(userId)}?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}"
             + (dryRun ? "&dry_run=true" : string.Empty);
         var response = await this.SendAsync(HttpMethod.Post, url, payload, writeFeature: "saving alarms");
@@ -185,14 +199,14 @@ public sealed partial class PoracleIncidentProxy(
     /// The strict v2 rule object. <c>uid</c> is deliberately never sent: on a create the rule's
     /// identity is its <c>display_type</c>, and on a replace the uid is in the path.
     /// </summary>
-    private static string RuleJson(PokestopEvent rule)
+    private static string RuleJson(PokestopEvent rule, int? distance = null)
     {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream))
         {
             writer.WriteStartObject();
             writer.WriteNumber("display_type", rule.DisplayType);
-            writer.WriteNumber("distance", rule.Distance);
+            writer.WriteNumber("distance", distance ?? rule.Distance);
             writer.WriteString("template", rule.Template ?? string.Empty);
 
             // The shared invasion table carries the clean bitmask; v2 splits it into three booleans.

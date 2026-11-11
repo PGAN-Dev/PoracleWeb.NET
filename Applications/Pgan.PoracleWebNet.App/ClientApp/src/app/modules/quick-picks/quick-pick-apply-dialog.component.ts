@@ -14,9 +14,10 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { quickPickDescription, quickPickName } from './quick-pick-labels';
-import { QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
+import { LinkSide, QuickPickApplyRequest, QuickPickSummary } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { I18nService } from '../../core/services/i18n.service';
+import { LinkedAccountService } from '../../core/services/linked-account.service';
 import { MasterDataService } from '../../core/services/masterdata.service';
 import { QuickPickService } from '../../core/services/quick-pick.service';
 import { AddRefusalComponent } from '../../shared/components/add-refusal/add-refusal.component';
@@ -59,6 +60,7 @@ export class QuickPickApplyDialogComponent {
 
   private readonly fb = inject(FormBuilder);
   private readonly i18n = inject(I18nService);
+  private readonly linked = inject(LinkedAccountService);
   private readonly masterData = inject(MasterDataService);
   private readonly quickPickService = inject(QuickPickService);
   private readonly snackBar = inject(MatSnackBar);
@@ -114,6 +116,15 @@ export class QuickPickApplyDialogComponent {
           mode: this.alertDefaults.defaultPlaceLabel() ? 'place' : 'profile',
           placeLabel: this.alertDefaults.defaultPlaceLabel(),
         },
+  );
+
+  /**
+   * The side the apply creates on, for the template picker. This dialog has no "Deliver to": the API routes
+   * the apply to the link's default destination, so a person who could choose sees that side's templates.
+   * Everyone else has only the signed-in platform, which the picker lists when the side is null.
+   */
+  readonly templateSide = computed<LinkSide | null>(() =>
+    this.linked.canChoose() ? (this.linked.status()?.defaultDestination ?? null) : null,
   );
 
   /** Whether this apply will create individual rows */

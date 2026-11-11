@@ -128,6 +128,11 @@ public partial class PoracleTrackingProxy
 
         var translated = await this.TranslateAllAsync(type, rows);
         var trusted = await this.AuthoriseOverrideAreasAsync(userId, rows, storedOnRule: null);
+        if (trusted)
+        {
+            translated = await this.ClampDistancesAsync(userId, translated);
+        }
+
         var url = $"{this._apiAddress}/api/v2/humans/{Encode(userId)}/tracking/{type}"
             + $"?silent=true{ProfileQuery(profileNo)}{TrustedQuery(trusted)}";
 
@@ -249,6 +254,44 @@ public partial class PoracleTrackingProxy
         }
 
         return translated;
+    }
+
+    /// <summary>
+    /// Caps each row's distance at the user's <c>max_distance</c> when the write goes out trusted.
+    /// </summary>
+    /// <remarks>
+    /// <c>trusted</c> is one flag for the whole POST, and PoracleNG skips its <c>max_distance</c> clamp for every
+    /// row under it, not only the row that named an override area. A batch (profile import, quick pick apply)
+    /// can hold one row with an override area and another with a radius over the limit, and the second would be
+    /// stored as asked. One rule cannot do both (an override area and a distance are exclusive), so a single
+    /// create is unaffected. Rows without a distance are left alone, and an exempt user's
+    /// <see cref="IUserAreaPolicy.ClampDistanceAsync"/> returns the distance unchanged.
+    /// </remarks>
+    private async Task<List<JsonElement>> ClampDistancesAsync(string userId, List<JsonElement> rules)
+    {
+        var clamped = new List<JsonElement>(rules.Count);
+        foreach (var rule in rules)
+        {
+            if (rule.ValueKind == JsonValueKind.Object
+                && rule.TryGetProperty("distance", out var d)
+                && d.ValueKind == JsonValueKind.Number
+                && d.TryGetInt32(out var distance)
+                && distance > 0)
+            {
+                var allowed = await this._areaPolicy.ClampDistanceAsync(userId, distance);
+                if (allowed != distance)
+                {
+                    var node = System.Text.Json.Nodes.JsonNode.Parse(rule.GetRawText())!.AsObject();
+                    node["distance"] = allowed;
+                    clamped.Add(JsonSerializer.SerializeToElement(node));
+                    continue;
+                }
+            }
+
+            clamped.Add(rule);
+        }
+
+        return clamped;
     }
 
     /// <summary>Authorises every override area the rows name, through the one area policy.</summary>

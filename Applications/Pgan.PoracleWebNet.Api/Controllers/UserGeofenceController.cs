@@ -147,7 +147,11 @@ public partial class UserGeofenceController(
         catch (UnauthorizedAccessException ex)
         {
             LogDeleteGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), id);
-            return this.Forbid();
+            // Not Forbid: same 404 and body as a missing id, so ids cannot be enumerated. Matches rename.
+            return this.NotFound(new
+            {
+                error = new GeofenceNotFoundException(id).Message
+            });
         }
     }
 
@@ -173,7 +177,11 @@ public partial class UserGeofenceController(
         catch (UnauthorizedAccessException ex)
         {
             LogDeleteGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), id);
-            return this.Forbid();
+            // Not Forbid: same 404 and body as a missing id, so ids cannot be enumerated. Matches rename.
+            return this.NotFound(new
+            {
+                error = new GeofenceNotFoundException(id).Message
+            });
         }
     }
 
@@ -211,6 +219,13 @@ public partial class UserGeofenceController(
             var result = await this._userGeofenceService.SubmitForReviewAsync(this.UserId, kojiName);
             return this.Ok(result);
         }
+        catch (GeofenceNotFoundException ex)
+        {
+            return this.NotFound(new
+            {
+                error = ex.Message
+            });
+        }
         catch (InvalidOperationException ex)
         {
             return this.BadRequest(new
@@ -221,7 +236,10 @@ public partial class UserGeofenceController(
         catch (UnauthorizedAccessException ex)
         {
             LogSubmitGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), kojiName);
-            return this.Forbid();
+            return this.NotFound(new
+            {
+                error = new GeofenceNotFoundException(kojiName).Message
+            });
         }
     }
 
@@ -255,7 +273,11 @@ public partial class UserGeofenceController(
         catch (UnauthorizedAccessException ex)
         {
             LogActivateGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), id);
-            return this.Forbid();
+            // Not Forbid: same 404 and body as a missing id, so ids cannot be enumerated. Matches rename.
+            return this.NotFound(new
+            {
+                error = new GeofenceNotFoundException(id).Message
+            });
         }
     }
 
@@ -281,7 +303,11 @@ public partial class UserGeofenceController(
         catch (UnauthorizedAccessException ex)
         {
             LogDeactivateGeofenceUnauthorized(this._logger, ex, LogSafe.Id(this.UserId), id);
-            return this.Forbid();
+            // Not Forbid: same 404 and body as a missing id, so ids cannot be enumerated. Matches rename.
+            return this.NotFound(new
+            {
+                error = new GeofenceNotFoundException(id).Message
+            });
         }
     }
 

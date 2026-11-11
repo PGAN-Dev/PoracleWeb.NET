@@ -103,6 +103,44 @@ describe('TemplateService', () => {
       tgHttpMock.expectOne(`${API}/api/config/templates`).flush(mockTemplateData);
     });
 
+    it('should return telegram templates for a discord user who asks for the telegram side', () => {
+      service.getTemplatesForType('monster', 'telegram').subscribe(templates => {
+        expect(templates).toEqual(['tg_template1']);
+      });
+
+      httpMock.expectOne(`${API}/api/config/templates`).flush(mockTemplateData);
+    });
+
+    it('should return discord templates for a telegram user who asks for the discord side', () => {
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [
+          provideHttpClient(),
+          provideHttpClientTesting(),
+          { provide: ConfigService, useValue: { apiHost: API } },
+          { provide: AuthService, useValue: { user: () => ({ type: 'telegram:user' }) } },
+        ],
+      });
+      const tgService = TestBed.inject(TemplateService);
+      const tgHttpMock = TestBed.inject(HttpTestingController);
+
+      tgService.getTemplatesForType('monster', 'discord').subscribe(templates => {
+        expect(templates).toEqual(['template1', 'template2']);
+      });
+
+      tgHttpMock.expectOne(`${API}/api/config/templates`).flush(mockTemplateData);
+    });
+
+    it('should serve both sides from one fetch', () => {
+      const seen: Record<string, unknown> = {};
+      service.getTemplatesForType('monster', 'telegram').subscribe(t => (seen['telegram'] = t));
+      service.getTemplatesForType('monster', 'discord').subscribe(t => (seen['discord'] = t));
+
+      httpMock.expectOne(`${API}/api/config/templates`).flush(mockTemplateData);
+      expect(seen['telegram']).toEqual(['tg_template1']);
+      expect(seen['discord']).toEqual(['template1', 'template2']);
+    });
+
     it('should return empty array for non-existent type', () => {
       service.getTemplatesForType('nonexistent').subscribe(templates => {
         expect(templates).toEqual([]);

@@ -304,6 +304,40 @@ public class CleaningServiceTests
         Assert.Contains("area not allowed", warning.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task CleaningToggleReportsEveryRefusedRule()
+    {
+        // 473 collides with 462 once it is clean: PoracleNG answers 409, and "Enable all" used to report full success.
+        this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 462, clean = 1 },
+            new { uid = 463, clean = 0 },
+            new { uid = 473, clean = 0 }));
+        this._proxy
+            .Setup(p => p.PatchAsync("lure", "u1", It.IsAny<IReadOnlyList<int>>(), It.IsAny<TrackingPatchSet>()))
+            .ReturnsAsync(new TrackingPatchResult(
+                [463], [462], [new PatchRefusal(473, PatchRefusalReasons.Conflict, "duplicate", 462)]));
+
+        var result = await this._sut.ToggleCleanLuresAsync("u1", 1, 1);
+
+        Assert.Equal(2, result.Updated);
+        var refusal = Assert.Single(result.Refused);
+        Assert.Equal(473, refusal.Uid);
+        Assert.Equal(PatchRefusalReasons.Conflict, refusal.Reason);
+    }
+
+    [Fact]
+    public async Task CleaningToggleWithNoRefusalsReportsNone()
+    {
+        this._proxy.Setup(p => p.GetByUserAsync("lure", "u1")).ReturnsAsync(CreateJsonArray(
+            new { uid = 1, clean = 0 },
+            new { uid = 2, clean = 0 }));
+
+        var result = await this._sut.ToggleCleanLuresAsync("u1", 1, 1);
+
+        Assert.Equal(2, result.Updated);
+        Assert.Empty(result.Refused);
+    }
+
     private sealed class CapturingLogger : ILogger<CleaningService>
     {
         public List<(LogLevel Level, string Message)> Entries { get; } = [];

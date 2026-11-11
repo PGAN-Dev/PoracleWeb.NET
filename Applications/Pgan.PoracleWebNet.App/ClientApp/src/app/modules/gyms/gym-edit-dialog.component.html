@@ -38,6 +38,7 @@
 
         <app-template-selector
           [alarmType]="'gym'"
+          [side]="form.controls.destination.value"
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>

@@ -99,6 +99,18 @@
 .text-muted {
   color: var(--text-hint, rgba(0, 0, 0, 0.38));
 }
+// The actions column is pinned to the right edge (stickyEnd) at every width, so it must be opaque at every
+// width: columns scroll under it wherever the table overflows, not only on a phone. The row hover is a
+// translucent fill, so the pinned cell repeats it as an overlay on its opaque base. The shadow on its left
+// edge is the cue that the other columns continue underneath it.
+.users-table .mat-mdc-header-cell.mat-column-actions,
+.users-table .mat-mdc-cell.mat-column-actions {
+  background-color: var(--mat-table-background-color, var(--mat-sys-surface));
+  box-shadow: -8px 0 8px -6px rgba(0, 0, 0, 0.3);
+}
+.users-table tr.mat-mdc-row:hover .mat-mdc-cell.mat-column-actions {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.04));
+}
 @media (max-width: 599px) {
   .table-container {
     overflow-x: auto;

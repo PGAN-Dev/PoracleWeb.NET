@@ -45,6 +45,7 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
         // it already written. Skip disabled types instead, and tell the caller which were skipped.
         var total = 0;
         var skipped = new List<string>();
+        var refused = new List<PatchRefusal>();
         PairWarning? warning = null;
 
         foreach (var (disableKey, toggle) in this.BulkToggles())
@@ -57,14 +58,18 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
 
             var result = await toggle(enabled);
             total += result.Updated;
+            refused.AddRange(result.Refused);
             warning ??= result.Warning;
         }
 
-        return this.Ok(this.Paired(new
+        // "refused" is left off when nothing was, so a clean run answers exactly as it always did.
+        var body = new Dictionary<string, object>
         {
-            updated = total,
-            skipped,
-        }, warning));
+            ["updated"] = total,
+            ["skipped"] = skipped,
+        };
+        AddRefused(body, refused);
+        return this.Ok(this.Paired(body, warning));
     }
 
     /// <summary>Every alarm type the bulk toggle covers, paired with the gate that can switch it off.</summary>
@@ -118,10 +123,24 @@ public class CleaningController(ICleaningService cleaningService, IFeatureGate f
             });
         }
 
-        return this.Ok(this.Paired(new
+        var single = new Dictionary<string, object>
         {
-            updated = count.Value.Updated
-        }, count.Value.Warning));
+            ["updated"] = count.Value.Updated,
+        };
+        AddRefused(single, count.Value.Refused);
+        return this.Ok(this.Paired(single, count.Value.Warning));
+    }
+
+    /// <summary>
+    /// Names the rules PoracleNG left at their old setting, as <c>{ uid, reason }</c>. The detail stays in the log;
+    /// the SPA switches on the reason (<c>conflict</c> reads as "another alarm already uses those settings").
+    /// </summary>
+    private static void AddRefused(Dictionary<string, object> body, IReadOnlyList<PatchRefusal> refused)
+    {
+        if (refused.Count > 0)
+        {
+            body["refused"] = refused.Select(r => new { uid = r.Uid, reason = r.Reason }).ToList();
+        }
     }
 
     private static readonly string[] ValidAlarmTypes =

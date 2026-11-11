@@ -64,6 +64,7 @@
 
         <app-template-selector
           [alarmType]="'maxbattle'"
+          [side]="form.controls.destination.value"
           [value]="form.controls.template.value ?? ''"
           (valueChange)="form.controls.template.setValue($event)">
         </app-template-selector>

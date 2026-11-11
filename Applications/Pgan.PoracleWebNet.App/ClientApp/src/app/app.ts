@@ -21,6 +21,7 @@ import { AuthService } from './core/services/auth.service';
 import { DashboardService } from './core/services/dashboard.service';
 import { I18nService } from './core/services/i18n.service';
 import { LinkedAccountService } from './core/services/linked-account.service';
+import { MenuFocusReturnService } from './core/services/menu-focus-return.service';
 import { DEFAULT_SITE_TITLE, SettingsService } from './core/services/settings.service';
 import { AlertDefaultsDialogComponent } from './shared/components/alert-defaults-dialog/alert-defaults-dialog.component';
 import { PairDriftBannerComponent } from './shared/components/pair-drift-banner/pair-drift-banner.component';
@@ -380,6 +381,7 @@ export class App implements OnInit {
     this.applyAccentTheme();
     // Initialize i18n early with defaults; ngOnInit re-inits with admin settings once loaded
     this.i18n.init();
+    inject(MenuFocusReturnService).init();
   }
 
   /** Sets the language Poracle writes alerts in, and says so either way. */
