@@ -34,7 +34,12 @@ public class AuthControllerTelegramVerifyTests : ControllerTestBase
         this._jwtService.Setup(j => j.GenerateToken(It.IsAny<UserInfo>())).Returns("jwt");
         this._roleResolver.Setup(r => r.ResolveAsync(It.IsAny<string>())).ReturnsAsync(new UserRoles(false, null));
 
-        this._sut = new AuthController(
+        this._sut = this.Build(new TelegramSettings { Enabled = true, BotToken = BotToken });
+    }
+
+    private AuthController Build(TelegramSettings telegram)
+    {
+        return new AuthController(
             this._humanService.Object, new Mock<IProfileService>().Object,
             new Mock<IPoracleApiProxy>().Object,
             new Mock<IPoracleHumanProxy>().Object,
@@ -46,7 +51,7 @@ public class AuthControllerTelegramVerifyTests : ControllerTestBase
             new Mock<Pgan.PoracleWebNet.Api.Services.Oidc.IOidcClient>().Object,
             new Mock<Pgan.PoracleWebNet.Api.Services.Oidc.IOidcSessionService>().Object,
             Options.Create(new DiscordSettings()),
-            Options.Create(new TelegramSettings { Enabled = true, BotToken = BotToken }),
+            Options.Create(telegram),
             Options.Create(new OidcSettings()),
             Options.Create(new PoracleSettings()),
             new ConfigurationBuilder().Build(),
@@ -113,6 +118,21 @@ public class AuthControllerTelegramVerifyTests : ControllerTestBase
     }
 
     [Fact]
+    public async Task EnabledWithABlankBotTokenRefusesAPayloadSignedWithTheEmptyKey()
+    {
+        // Telegram:Enabled alone is not "configured": with no token the widget check would accept anything
+        // signed with SHA256(""), which is public knowledge, so any Telegram id could be claimed.
+        this._humanService.Setup(h => h.GetByIdAsync(TelegramId)).ReturnsAsync(new Human { Id = TelegramId, Type = "telegram:user", Enabled = 1 });
+        var sut = this.Build(new TelegramSettings { Enabled = true, BotToken = "" });
+
+        var result = Assert.IsType<BadRequestObjectResult>(await sut.TelegramVerify(Signed(token: "")));
+
+        Assert.Equal("Telegram authentication is not enabled.", GetProp(result.Value, "error"));
+        this._humanService.Verify(h => h.GetByIdAsync(It.IsAny<string>()), Times.Never);
+        this._jwtService.Verify(j => j.GenerateToken(It.IsAny<UserInfo>()), Times.Never);
+    }
+
+    [Fact]
     public async Task ADestinationRowKeepsItsOwnCode()
     {
         this._humanService.Setup(h => h.GetByIdAsync(TelegramId)).ReturnsAsync(new Human { Id = TelegramId, Type = "telegram:group", Enabled = 1 });
@@ -124,7 +144,7 @@ public class AuthControllerTelegramVerifyTests : ControllerTestBase
 
     private static object? GetProp(object? value, string name) => value?.GetType().GetProperty(name)?.GetValue(value);
 
-    private static Dictionary<string, string> Signed()
+    private static Dictionary<string, string> Signed(string token = BotToken)
     {
         var data = new Dictionary<string, string>
         {
@@ -134,7 +154,7 @@ public class AuthControllerTelegramVerifyTests : ControllerTestBase
             ["auth_date"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
         };
         var check = string.Join("\n", data.OrderBy(k => k.Key, StringComparer.Ordinal).Select(k => $"{k.Key}={k.Value}"));
-        using var hmac = new HMACSHA256(SHA256.HashData(Encoding.UTF8.GetBytes(BotToken)));
+        using var hmac = new HMACSHA256(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
         data["hash"] = Convert.ToHexStringLower(hmac.ComputeHash(Encoding.UTF8.GetBytes(check)));
         return data;
     }
