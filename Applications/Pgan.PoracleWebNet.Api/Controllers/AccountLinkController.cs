@@ -81,7 +81,7 @@ public partial class AccountLinkController(
             return RefusedWhileImpersonating();
         }
 
-        if (!this._telegramSettings.Enabled || await this._siteSettings.IsSwitchedOffAsync("enable_telegram"))
+        if (!SignInConfiguration.TelegramConfigured(this._telegramSettings) || await this._siteSettings.IsSwitchedOffAsync("enable_telegram"))
         {
             return Refused(LinkRefusalCode.AppUnavailable, "Telegram sign-in is not available on this site.");
         }
