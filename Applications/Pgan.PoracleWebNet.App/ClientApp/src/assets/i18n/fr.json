@@ -1171,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Nettoyage {{action}} pour tous les types ({{count}} alarmes mises à jour)",
     "SNACK_TOGGLE_TYPE_ONE": "Nettoyage {{action}} pour {{type}} ({{count}} alarme mise à jour)",
     "SNACK_TOGGLE_TYPE_OTHER": "Nettoyage {{action}} pour {{type}} ({{count}} alarmes mises à jour)",
+    "REFUSED_CONFLICT_ONE": "{{count}} ignorée : une autre alarme utilise déjà ces réglages.",
+    "REFUSED_CONFLICT_OTHER": "{{count}} ignorées : une autre alarme utilise déjà ces réglages.",
+    "REFUSED_OTHER_ONE": "{{count}} ignorée : le serveur a refusé la modification.",
+    "REFUSED_OTHER_OTHER": "{{count}} ignorées : le serveur a refusé la modification.",
     "ENABLED": "activé",
     "DISABLED": "désactivé"
   },

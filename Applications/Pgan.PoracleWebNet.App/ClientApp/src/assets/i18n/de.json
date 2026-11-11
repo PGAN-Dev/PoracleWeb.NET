@@ -1171,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Aufräumen {{action}} für alle Typen ({{count}} Alarme aktualisiert)",
     "SNACK_TOGGLE_TYPE_ONE": "Aufräumen {{action}} für {{type}} ({{count}} Alarm aktualisiert)",
     "SNACK_TOGGLE_TYPE_OTHER": "Aufräumen {{action}} für {{type}} ({{count}} Alarme aktualisiert)",
+    "REFUSED_CONFLICT_ONE": "{{count}} übersprungen: ein anderer Alarm verwendet diese Einstellungen bereits.",
+    "REFUSED_CONFLICT_OTHER": "{{count}} übersprungen: ein anderer Alarm verwendet diese Einstellungen bereits.",
+    "REFUSED_OTHER_ONE": "{{count}} übersprungen: der Server hat die Änderung nicht angenommen.",
+    "REFUSED_OTHER_OTHER": "{{count}} übersprungen: der Server hat die Änderung nicht angenommen.",
     "ENABLED": "aktiviert",
     "DISABLED": "deaktiviert"
   },

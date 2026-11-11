@@ -1171,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Städning {{action}} för alla typer ({{count}} larm uppdaterade)",
     "SNACK_TOGGLE_TYPE_ONE": "Städning {{action}} för {{type}} ({{count}} larm uppdaterat)",
     "SNACK_TOGGLE_TYPE_OTHER": "Städning {{action}} för {{type}} ({{count}} larm uppdaterade)",
+    "REFUSED_CONFLICT_ONE": "Hoppade över {{count}}: ett annat larm använder redan de inställningarna.",
+    "REFUSED_CONFLICT_OTHER": "Hoppade över {{count}}: ett annat larm använder redan de inställningarna.",
+    "REFUSED_OTHER_ONE": "Hoppade över {{count}}: servern godtog inte ändringen.",
+    "REFUSED_OTHER_OTHER": "Hoppade över {{count}}: servern godtog inte ändringen.",
     "ENABLED": "aktiverad",
     "DISABLED": "inaktiverad"
   },

@@ -128,7 +128,7 @@ public partial class CleaningService(
     /// <summary>
     /// Sets or clears the auto-delete bit on every rule of a type through one v2 <c>PATCH</c>, which names
     /// <c>clean</c> and nothing else, so the edit-in-place and summary bits stay as stored (#292) and each rule
-    /// keeps its uid. Returns how many rules PoracleNG updated or found already set.
+    /// keeps its uid. Returns how many rules PoracleNG updated or found already set, and the ones it refused.
     /// </summary>
     private async Task<CleanToggleResult> ToggleCleanAsync(string type, string userId, int clean)
     {
@@ -145,36 +145,41 @@ public partial class CleaningService(
         var pair = await this._linked.ResolveAsync(userId);
         var ids = pair.ExistingHumanIds;
         var updated = 0;
+        var refused = new List<PatchRefusal>();
         for (var i = 0; i < ids.Count; i++)
         {
             if (i == 0)
             {
-                updated += await this.ToggleCleanForAsync(type, ids[i], clean);
+                var first = await this.ToggleCleanForAsync(type, ids[i], clean);
+                updated += first.Updated;
+                refused.AddRange(first.Refused);
                 continue;
             }
 
             try
             {
-                updated += await this.ToggleCleanForAsync(type, ids[i], clean);
+                var other = await this.ToggleCleanForAsync(type, ids[i], clean);
+                updated += other.Updated;
+                refused.AddRange(other.Refused);
             }
             catch (Exception ex) when (ex is not (OperationCanceledException or FeatureDisabledException))
             {
                 var side = pair.SideOf(ids[i]) ?? LinkSide.Telegram;
                 LogOtherSideCleanFailed(this._logger, ex, type, LogSafe.Id(ids[i]), side);
-                return new CleanToggleResult(updated, PairedHumanWriter.WarningFor(ex, side));
+                return new CleanToggleResult(updated, PairedHumanWriter.WarningFor(ex, side), refused);
             }
         }
 
-        return new CleanToggleResult(updated);
+        return new CleanToggleResult(updated, null, refused);
     }
 
-    private async Task<int> ToggleCleanForAsync(string type, string userId, int clean)
+    private async Task<CleanToggleResult> ToggleCleanForAsync(string type, string userId, int clean)
     {
         var trackingJson = await this._trackingProxy.GetByUserAsync(type, userId);
 
         if (trackingJson.ValueKind != JsonValueKind.Array || trackingJson.GetArrayLength() == 0)
         {
-            return 0;
+            return new CleanToggleResult(0);
         }
 
         var isOurs = await this.OwnRowPredicateAsync(type);
@@ -184,27 +189,29 @@ public partial class CleaningService(
 
         var set = new TrackingPatchSet(Clean: CleanFlags.IsAutoDelete(clean));
         var count = 0;
+        var refused = new List<PatchRefusal>();
 
         if (ruleUids.Count > 0)
         {
-            count += this.Count(type, await this._trackingProxy.PatchAsync(type, userId, ruleUids, set));
+            count += this.Count(type, await this._trackingProxy.PatchAsync(type, userId, ruleUids, set), refused);
         }
 
         if (eventUids.Count > 0)
         {
-            count += this.Count("incident", await this._incidentProxy.PatchAsync(userId, eventUids, set));
+            count += this.Count("incident", await this._incidentProxy.PatchAsync(userId, eventUids, set), refused);
         }
 
-        return count;
+        return new CleanToggleResult(count, null, refused);
     }
 
-    private int Count(string type, TrackingPatchResult result)
+    private int Count(string type, TrackingPatchResult result, List<PatchRefusal> refused)
     {
         foreach (var refusal in result.Refused)
         {
             LogCleanRefused(this._logger, type, refusal.Uid, refusal.Reason, refusal.Detail);
         }
 
+        refused.AddRange(result.Refused);
         return result.Updated.Count + result.Unchanged.Count;
     }
 

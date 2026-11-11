@@ -1171,6 +1171,10 @@
     "SNACK_TOGGLE_ALL_OTHER": "Limpeza {{action}} para todos os tipos ({{count}} alarmes atualizados)",
     "SNACK_TOGGLE_TYPE_ONE": "Limpeza {{action}} para {{type}} ({{count}} alarme atualizado)",
     "SNACK_TOGGLE_TYPE_OTHER": "Limpeza {{action}} para {{type}} ({{count}} alarmes atualizados)",
+    "REFUSED_CONFLICT_ONE": "{{count}} foi ignorado: outro alarme já usa essas configurações.",
+    "REFUSED_CONFLICT_OTHER": "{{count}} foram ignorados: outro alarme já usa essas configurações.",
+    "REFUSED_OTHER_ONE": "{{count}} foi ignorado: o servidor não aceitou a alteração.",
+    "REFUSED_OTHER_OTHER": "{{count}} foram ignorados: o servidor não aceitou a alteração.",
     "ENABLED": "ativada",
     "DISABLED": "desativada"
   },
