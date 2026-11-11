@@ -1840,6 +1840,7 @@
     "LOCATION_LONGITUDE": "Longitud",
     "LOCATION_LATITUDE_RANGE": "Ange en latitud från -90 till 90.",
     "LOCATION_LONGITUDE_RANGE": "Ange en longitud från -180 till 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 ligger i Guineabukten, och PoracleNG tolkar det som ingen nål. Välj en riktig punkt, eller använd Rensa nål för att ta bort nålen.",
     "LOCATION_USE_MY": "Använd min plats",
     "LOCATION_GETTING": "Hämtar plats...",
     "DISTANCE_TITLE_ONE": "Ändra radien för {{count}} larm",

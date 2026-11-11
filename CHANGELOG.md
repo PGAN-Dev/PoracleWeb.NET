@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Areas page asks before it throws away ticks you haven't saved.** Ticking areas and clicking a sidebar link used to drop the selection without a word. The page now prompts the way Admin > Areas does, a reload or tab close warns too, and a clean or just-saved page leaves without a question.
+- **A 0, 0 pin is refused instead of silently erasing your pin.** PoracleNG reads 0, 0 as "no pin", so saving it said "Location updated", then showed "No pin set" on the next load and lost the previous real pin. The location dialog now explains this and keeps Save off for exactly 0, 0 (any other point, however close to the equator or prime meridian, still saves); Clear on the Areas page is how to remove a pin.
+- **The Areas map is no longer clipped at the bottom.** The map overran its box by the height of the region-search bar, hiding the strip with the OpenStreetMap and Leaflet credit at every screen width. The map now fits the space under the search bar.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

@@ -172,7 +172,7 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
    * 400 behind a generic toast. `Number.isFinite` refuses null, empty and NaN alike.
    */
   isValid(): boolean {
-    return this.latitudeError() === null && this.longitudeError() === null;
+    return this.latitudeError() === null && this.longitudeError() === null && !this.originPinHint();
   }
 
   /** The translation key for what is wrong with the latitude, or null when it is usable. */
@@ -232,6 +232,15 @@ export class LocationDialogComponent implements OnInit, OnDestroy {
       this.noMatches.set(false);
       this.search$.next(value);
     }
+  }
+
+  /**
+   * True for exactly 0,0. PoracleNG stores "no pin" as 0,0, so saving it reported success and the pin read
+   * "No pin set" on the next load, with the previous real pin gone. Only the exact pair: a point near the
+   * equator or the prime meridian is a real place. Clear pin is the way to remove a pin.
+   */
+  originPinHint(): boolean {
+    return this.latitudeError() === null && this.longitudeError() === null && this.latitude === 0 && this.longitude === 0;
   }
 
   /**

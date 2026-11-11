@@ -1840,6 +1840,7 @@
     "LOCATION_LONGITUDE": "Longitudine",
     "LOCATION_LATITUDE_RANGE": "Inserisci una latitudine da -90 a 90.",
     "LOCATION_LONGITUDE_RANGE": "Inserisci una longitudine da -180 a 180.",
+    "LOCATION_ORIGIN_HINT": "0, 0 si trova nel Golfo di Guinea e PoracleNG lo interpreta come nessun segnaposto. Scegli un punto reale oppure usa «Rimuovi segnaposto» per eliminarlo.",
     "LOCATION_USE_MY": "Usa la mia posizione",
     "LOCATION_GETTING": "Recupero posizione...",
     "DISTANCE_TITLE_ONE": "Cambia il raggio di {{count}} allarme",
