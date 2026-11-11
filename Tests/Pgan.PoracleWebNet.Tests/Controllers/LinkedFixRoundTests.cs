@@ -162,7 +162,7 @@ public class LinkedFixRoundTests : ControllerTestBase
         var sut = new ProfileController(
             this._profileService.Object, this._humanService.Object, this._humanProxy.Object, Mock.Of<IJwtService>(),
             Mock.Of<IUserRoleResolver>(), Mock.Of<IUserAreaWriter>(),
-            PairTestSupport.Writer(linked), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), NullLogger<ProfileController>.Instance);
+            PairTestSupport.Writer(linked), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IProfileOverviewService>(), NullLogger<ProfileController>.Instance);
         SetupUser(sut, Discord);
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync(Discord, 2)).ReturnsAsync(new Profile { Id = Discord, ProfileNo = 2, Name = "Work" });
         return sut;

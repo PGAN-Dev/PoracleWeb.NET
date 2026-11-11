@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Duplicating a profile from the Profiles page respects switched-off alert types.** `POST /api/profiles/duplicate` copied through PoracleNG's profile copy with no look at this site's `disable_*` settings, so with raids switched off it answered 201 and the copy carried the raid and egg rules; the Profile overview's duplicate has refused such a source since #236. Both duplicates now share that pre-validated copy, and a refusal rolls the new profile back as any other copy failure does.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

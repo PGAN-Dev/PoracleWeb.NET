@@ -13,6 +13,7 @@ namespace Pgan.PoracleWebNet.Tests.Controllers;
 public class ProfileControllerTests : ControllerTestBase
 {
     private readonly Mock<IProfileService> _profileService = new();
+    private readonly Mock<IProfileOverviewService> _profileOverview = new();
     private readonly Mock<IHumanService> _humanService = new();
     private readonly Mock<IPoracleHumanProxy> _humanProxy = new();
     private readonly ProfileController _sut;
@@ -26,7 +27,7 @@ public class ProfileControllerTests : ControllerTestBase
         this._jwtService.Setup(j => j.GenerateTokenWithReplacedProfile(It.IsAny<System.Security.Claims.ClaimsPrincipal>(), It.IsAny<int>(), It.IsAny<bool?>()))
             .Returns("test-jwt-token");
 
-        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._jwtService.Object, this._roleResolver.Object, this._areaWriter.Object, PairTestSupport.UnlinkedWriter(), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileController>.Instance);
+        this._sut = new ProfileController(this._profileService.Object, this._humanService.Object, this._humanProxy.Object, this._jwtService.Object, this._roleResolver.Object, this._areaWriter.Object, PairTestSupport.UnlinkedWriter(), Mock.Of<Pgan.PoracleWebNet.Core.Abstractions.Services.IUserAreaPolicy>(), this._profileOverview.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<ProfileController>.Instance);
         SetupUser(this._sut);
     }
 
@@ -119,7 +120,26 @@ public class ProfileControllerTests : ControllerTestBase
 
         Assert.IsType<CreatedAtActionResult>(result);
         this._humanProxy.Verify(p => p.AddProfileAsync("123456789", It.IsAny<JsonElement>()), Times.Once);
-        this._profileService.Verify(s => s.CopyAsync("123456789", 1, 2), Times.Once);
+        this._profileOverview.Verify(s => s.DuplicateProfileAsync("123456789", 1, 2), Times.Once);
+    }
+
+    [Fact]
+    public async Task DuplicateRefusesASourceCarryingADisabledTypeAndRollsTheNewProfileBack()
+    {
+        // The overview duplicate has refused a source that carries a disabled type since #236; this route
+        // copied through PoracleNG's profile copy with no such check, so with disable_raids on it answered
+        // 201 and the copy carried the raid rows. Both duplicates now share the one pre-validated copy.
+        var sourceProfile = new Profile { Id = "123456789", ProfileNo = 1, Name = "Main" };
+        this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(sourceProfile);
+        this.SetupCreateAssigns(2, "Main (copy)");
+        this._profileOverview.Setup(s => s.DuplicateProfileAsync("123456789", 1, 2))
+            .ThrowsAsync(new FeatureDisabledException(DisableFeatureKeys.Raids));
+
+        var ex = await Assert.ThrowsAsync<FeatureDisabledException>(
+            () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Main (copy)" }));
+
+        Assert.Equal(DisableFeatureKeys.Raids, ex.DisableKey);
+        this._humanProxy.Verify(p => p.DeleteProfileAsync("123456789", 2), Times.Once);
     }
 
     [Fact]
@@ -193,8 +213,8 @@ public class ProfileControllerTests : ControllerTestBase
 
         await this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 0, Name = "Dup" });
 
-        this._profileService.Verify(s => s.CopyAsync("123456789", 0, 2), Times.Once);
-        this._profileService.Verify(s => s.CopyAsync("123456789", 0, 4), Times.Never);
+        this._profileOverview.Verify(s => s.DuplicateProfileAsync("123456789", 0, 2), Times.Once);
+        this._profileOverview.Verify(s => s.DuplicateProfileAsync("123456789", 0, 4), Times.Never);
         this._profileService.Verify(s => s.GetByUserAsync(It.IsAny<string>()), Times.Never);
     }
 
@@ -420,7 +440,7 @@ public class ProfileControllerTests : ControllerTestBase
             () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" }));
 
         this._humanProxy.Verify(h => h.DeleteProfileAsync("123456789", 2), Times.Once);
-        this._profileService.Verify(s => s.CopyAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
+        this._profileOverview.Verify(s => s.DuplicateProfileAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>()), Times.Never);
     }
 
     [Fact]
@@ -428,7 +448,7 @@ public class ProfileControllerTests : ControllerTestBase
     {
         this._profileService.Setup(s => s.GetByUserAndProfileNoAsync("123456789", 1)).ReturnsAsync(P(1, "Work"));
         this.SetupCreateAssigns(2, "Copy");
-        this._profileService.Setup(s => s.CopyAsync("123456789", 1, 2)).ThrowsAsync(new InvalidOperationException("copy failed"));
+        this._profileOverview.Setup(s => s.DuplicateProfileAsync("123456789", 1, 2)).ThrowsAsync(new InvalidOperationException("copy failed"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => this._sut.Duplicate(new DuplicateProfileRequest { FromProfileNo = 1, Name = "Copy" }));
