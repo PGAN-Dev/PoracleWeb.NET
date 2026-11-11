@@ -17,6 +17,7 @@ import { I18nService } from '../../core/services/i18n.service';
 import { IconService } from '../../core/services/icon.service';
 import { LureService } from '../../core/services/lure.service';
 import { DeliverToFieldComponent } from '../../shared/components/deliver-to/deliver-to-field.component';
+import { EditDefaultTagComponent } from '../../shared/components/edit-default-tag/edit-default-tag.component';
 import { ScopePickerComponent } from '../../shared/components/scope-picker/scope-picker.component';
 import { TemplateSelectorComponent } from '../../shared/components/template-selector/template-selector.component';
 import { createFailureText } from '../../shared/utils/add-outcome';
@@ -28,6 +29,7 @@ import { mentionCapable } from '../../shared/utils/human-kind';
 @Component({
   imports: [
     DeliverToFieldComponent,
+    EditDefaultTagComponent,
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,

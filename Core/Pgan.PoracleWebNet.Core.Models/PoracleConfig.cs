@@ -91,6 +91,14 @@ public class PoracleConfig
     {
         get; set;
     }
+
+    /// <summary>
+    /// PoracleNG's <c>[tracking] default_edit</c>: the alert types (<c>pokemon</c>, <c>raid</c>, <c>egg</c>,
+    /// <c>lure</c>, <c>incident</c>) whose alerts the server edits in place whether or not the rule sets
+    /// <c>edit</c>. Applied at match time and never stored, so a rule's own <c>clean</c> bit says nothing about
+    /// it. Empty when absent (before 5.4.0) or when no type is listed.
+    /// </summary>
+    public List<string> DefaultEdit { get; set; } = [];
     /// <summary>
     /// Webhook types the upstream Poracle deployment has switched off, as reported by
     /// <c>GET /api/config/poracleWeb</c> (e.g. <c>["raid", "quest"]</c>).

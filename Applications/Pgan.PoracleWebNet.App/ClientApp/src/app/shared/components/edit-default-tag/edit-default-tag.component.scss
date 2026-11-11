@@ -1,0 +1,9 @@
+:host {
+  display: contents;
+}
+
+// The dialog's own hint sits under the toggle it explains; this one follows it and only needs to
+// be read as a continuation, so the gap above is pulled in.
+.edit-default-hint {
+  margin-top: -8px;
+}

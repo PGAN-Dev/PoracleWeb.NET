@@ -2,7 +2,7 @@
 
 This release of PoracleWeb.NET needs PoracleNG 5.4.0 or newer. Upgrade PoracleNG first, then PoracleWeb.NET, then run the rule repair once.
 
-PoracleNG doesn't publish tagged releases for this: 5.4.0 is its `develop` branch, which reports version 5.4.0. Build from a `develop` commit of 22 October 2026 or later, which includes [jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331), so the rule repair and Profile Overview see every rule (see below). [Which PoracleNG to run](../architecture/poracleng-compatibility.md#which-poracleng-to-run) lists the tested combinations.
+PoracleNG doesn't publish git tags or GitHub releases. 5.4.0 is its `main` branch from 10 November 2026, and the `ghcr.io/jfberry/poracleng:latest` image built from it; `develop` has reported 5.4.0 since 21 October 2026. If you build from `develop`, use a commit of 22 October 2026 or later, which includes [jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331), so the rule repair and Profile Overview see every rule (see below). [Which PoracleNG to run](../architecture/poracleng-compatibility.md#which-poracleng-to-run) lists the tested combinations.
 
 PoracleWeb.NET still starts against an older PoracleNG, but it logs an error, the Versions card under **Admin > Server settings** warns that PoracleNG is too old, and calls to routes the older server lacks fail with a message naming the version they need.
 
@@ -87,7 +87,7 @@ The `...` in each route is `/api/v2/humans/{id}`. The card polls `GET /api/admin
 
 A rule's `profile_no` can point at a profile that has no row in PoracleNG's profiles table, usually one deleted through an older tool, or the active profile of a user who never created one.
 
-On a PoracleNG build that includes [jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331) (`develop` from 22 October 2026), the all-profiles read returns these rules with their profile number, so they show in Profile Overview and the scan, and the repair reaches them. Like every rule off the active profile, a rule on a deleted profile doesn't fire, but you can now see it and delete it.
+On a PoracleNG build that includes [jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331) (`develop` from 22 October 2026, and every 5.4.0 `main` or `latest` build), the all-profiles read returns these rules with their profile number, so they show in Profile Overview and the scan, and the repair reaches them. Like every rule off the active profile, a rule on a deleted profile doesn't fire, but you can now see it and delete it.
 
 On an earlier 5.4.0 build the read skipped them ([jfberry/PoracleNG#330](https://github.com/jfberry/PoracleNG/issues/330)). PoracleWeb.NET still reads the active profile a second time for those builds, so rules on the active profile are covered either way; rules on other row-less profiles stay out of sight until PoracleNG is updated. A rule both reads return is counted once.
 

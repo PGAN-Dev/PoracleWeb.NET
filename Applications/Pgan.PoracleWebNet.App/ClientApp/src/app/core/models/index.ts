@@ -432,6 +432,11 @@ export interface AuthProviders {
  * lists, the webhook delegation map, providerURL and staticKey -- none of which a browser needs.
  */
 export interface PoracleServerConfig {
+  /**
+   * The alarm types PoracleNG edits in place by default (its `defaultEdit` list, 5.4.0): a rule of one
+   * of these types that does not carry the edit bit is still an edit upstream. Empty on older servers.
+   */
+  defaultEdit: string[];
   defaultPvpCap: number;
   defaultTemplateName: string;
   everythingFlagPermissions: string;

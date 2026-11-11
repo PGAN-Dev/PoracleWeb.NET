@@ -1,0 +1,9 @@
+@if (appearance() === 'hint') {
+  @if (serverDefault()) {
+    <p class="clean-hint edit-default-hint">{{ 'ALARM.EDIT_DEFAULT_DIALOG_HINT' | translate }}</p>
+  }
+} @else if (showTag()) {
+  <span class="rule-tag" [matTooltip]="'ALARM.EDIT_DEFAULT_HINT' | translate"
+    ><mat-icon>edit_note</mat-icon>{{ 'ALARM.STATUS_EDIT_DEFAULT' | translate }}</span
+  >
+}

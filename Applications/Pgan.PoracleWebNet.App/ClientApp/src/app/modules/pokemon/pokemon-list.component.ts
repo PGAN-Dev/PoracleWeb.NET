@@ -32,6 +32,7 @@ import { AlarmMoreMenuComponent } from '../../shared/components/alarm-more-menu/
 import { BulkActionBarComponent } from '../../shared/components/bulk-action-bar/bulk-action-bar.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { DistanceDialogComponent } from '../../shared/components/distance-dialog/distance-dialog.component';
+import { EditDefaultTagComponent } from '../../shared/components/edit-default-tag/edit-default-tag.component';
 import { QuietChipComponent } from '../../shared/components/quiet-chip/quiet-chip.component';
 import { WhereChipComponent } from '../../shared/components/where-chip/where-chip.component';
 import { WhereSheetComponent, WhereSheetData, whereSheetConfig } from '../../shared/components/where-sheet/where-sheet.component';
@@ -57,6 +58,7 @@ import { serverReason } from '../../shared/utils/server-reason';
     AlarmListToolbarComponent,
     AlarmMoreMenuComponent,
     BulkActionBarComponent,
+    EditDefaultTagComponent,
     QuietChipComponent,
     MatButtonModule,
     MatButtonToggleModule,
@@ -93,8 +95,8 @@ export class PokemonListComponent implements OnInit {
   /** `?add=1` from the dashboard or onboarding opens the add dialog once. */
   private readonly takeAddRequest = addOnArrival();
   private readonly translate = inject(TranslateService);
-
   readonly activeFilter = signal<string | null>(null);
+
   readonly activeGen = signal<{ label: string; min: number; max: number } | null>(null);
   /** A linked person can filter by the app each alarm is delivered to. */
   readonly destinationFilter = signal<DestinationFilter>('all');
@@ -173,6 +175,9 @@ export class PokemonListComponent implements OnInit {
 
   /** True for a linked person, who gets the delivery filter, the card glyph and the bulk move. */
   readonly canChooseDestination = inject(LinkedAccountService).canChoose;
+
+  /** `tracking.pokemon_edit`: off means no pokemon edit happens, so no edit status is worth showing. */
+  readonly editSupported = this.monsterService.editSupported;
 
   readonly generations = [
     { color: '#4CAF50', label: '1', max: 151, min: 1 },

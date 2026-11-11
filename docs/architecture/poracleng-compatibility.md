@@ -16,22 +16,23 @@ switches on or off with the server's version.
 
 ## Which PoracleNG to run
 
-PoracleNG doesn't publish tagged releases. Its `develop` branch is where its releases land and reports 5.4.0 from 21 October 2026. Its `main` branch, which is also what the `latest` image is built from, has stayed at 5.2.1 since 1 September 2026. Choose PoracleNG by branch or image tag, never by `latest`.
+PoracleNG doesn't publish git tags or GitHub releases. A release is its `develop` branch merged into `main`, and the `latest` image is built from `main`. 5.4.0 reached `main` on 10 November 2026 ([jfberry/PoracleNG#361](https://github.com/jfberry/PoracleNG/pull/361)); before that it was only on `develop`, and `main` and `latest` were 5.2.1.
 
 | PoracleWeb.NET | PoracleNG | Status |
 |---|---|---|
-| This version | `develop` at commit `34421b82` (22 October 2026) or newer; image `ghcr.io/jfberry/poracleng:develop` | Required. Tested against `34421b82`. |
-| This version | 5.4.0 built before `34421b82` (21–22 October 2026) | Works, except that rules on a profile number with no profile row stay out of Profile Overview and the rule repair scan ([jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331)). |
-| This version | `main` or `latest` (5.2.1), or anything older than 5.4.0 | Not supported. Startup logs an error, the Versions card says PoracleNG is too old, and most saves fail. |
-| 2.21.0 | 5.1.0 or newer, including `main`/`latest` (5.2.1) and `develop` (5.4.0) | Supported. Quiet periods, editing saved places and alarm edits through `/api/v2` need 5.2.0 or newer. Tested against 5.2.1 and against `develop` at `34421b82`. |
-| Earlier 2.x releases | 5.1.0 or newer | Supported up to 5.3.x. Not tested against 5.4.0; move to 2.21.0 first. |
-| Experimental shiny line, `2.21.0-shiny.1` (image `ghcr.io/pgan-dev/poracleweb.net-experimental:2.21.0-shiny.1`) | `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)); image `ghcr.io/jfberry/poracleng:feat-personal-shiny` | Supported, with personal shiny alerts. On `develop` without that pull request it works with the shiny controls hidden. |
+| This version | 5.4.0 or newer: `main` or the `latest` image from 10 November 2026, or `develop`; images `ghcr.io/jfberry/poracleng:latest` and `:develop` | Required. Tested against `develop` at `34421b82` (22 October 2026) and in production against `develop` at `97430191` (30 October 2026), whose `/api/v2` is identical to the 5.4.0 release. |
+| This version | A `develop` build from 21–22 October 2026, before `34421b82` | Works, except that rules on a profile number with no profile row stay out of Profile Overview and the rule repair scan ([jfberry/PoracleNG#331](https://github.com/jfberry/PoracleNG/pull/331)). |
+| This version | 5.2.1 (`main` or `latest` pulled before 10 November 2026), or anything older | Not supported. Startup logs an error, the Versions card says PoracleNG is too old, and most saves fail. |
+| 2.21.0 | 5.1.0 or newer, including 5.2.1 and 5.4.0 | Supported. Quiet periods, editing saved places and alarm edits through `/api/v2` need 5.2.0 or newer. Tested against 5.2.1 and against `develop` at `34421b82`. |
+| Earlier 2.x releases | 5.1.0 or newer | Supported up to 5.2.1. Not tested against 5.4.0; move to 2.21.0 first. |
+| Experimental shiny line (`ghcr.io/pgan-dev/poracleweb.net-experimental`) | `feat/personal-shiny` ([jfberry/PoracleNG#255](https://github.com/jfberry/PoracleNG/pull/255)); image `ghcr.io/jfberry/poracleng:feat-personal-shiny` | Closed; no further prereleases are planned. Its last build, `3.5.0-shiny.1`, works with the shiny controls hidden on a PoracleNG without that pull request. |
 
 The PoracleWeb.NET images: `ghcr.io/pgan-dev/poracleweb.net:<version>` for each release (and `latest` for the newest), `:beta` for PoracleWeb.NET's own `develop` branch, which follows the "This version" rows.
 
 Known differences between the combinations above:
 
 - This version can't create an invasion alarm limited to genderless grunts, and can't save an existing one, because PoracleNG's `/api/v2` has no genderless value for invasions. It says so and changes nothing.
+- A fort-change alarm for Power Spots only (`!fort station` in the bot) doesn't appear on the web and can't be made there. PoracleNG's `/api/v2` fort route takes `pokestop`, `gym` and `everything` and refuses `station` by design, so PoracleWeb.NET skips such a rule when it reads the list and logs it. The rule keeps working in the bot.
 - 2.21.0 against a PoracleNG with personal shiny: adding an alarm next to a personal one that differs only in its radius is refused, because 2.21.0 doesn't know PoracleNG counts the personal flag as part of a rule. Nothing is overwritten.
 - 2.21.0: start PoracleNG before PoracleWeb.NET. If PoracleWeb.NET starts while PoracleNG isn't answering, quiet periods stay unavailable until PoracleWeb.NET restarts. This version doesn't have that problem.
 
@@ -112,10 +113,13 @@ There is deliberately no central registry. A registry was written and abandoned,
 shape already existed and two mechanisms answering one question is how one of them ends up being the one
 nobody updates.
 
-Costume names are the awkward one. PoracleNG loads them into its game data under `costume_{id}` keys
-but publishes them nowhere (`/api/masterdata/` offers only `monsters` and `grunts`), so the costume
-picker reads the same WatWowMap masterfile PoracleNG itself reads. The names are therefore English in
-every language, and a costume too new for that file shows as its number.
+Costume names come from PoracleNG's `/api/masterdata/costumes?locale=`, which 5.4.0 added beside
+`monsters` and `grunts`. PoracleWeb.NET reads it for the interface language, drops the "Unset" entry
+(the picker has its own "no costume" choice) and any name PoracleNG left as a bare `costume_{id}` key,
+and hands the SPA the same id-to-name map it always had. A language PoracleNG has no costume strings for
+comes back English from it. When PoracleNG is unreachable or answers nothing usable, the names fall back
+to the raw WatWowMap masterfile PoracleNG itself downloads, so a costume too new for either shows as its
+number.
 
 `TrackingFieldPreserver` carries forward every stored field PoracleWeb.NET has no model for on an edit,
 and bulk distance and cleaning send only the field they change, so a field set with the bot survives a web

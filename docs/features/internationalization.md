@@ -18,7 +18,7 @@ PoracleWeb.NET supports 11 UI languages. Users can switch the interface language
 | :flag_dk: | Dansk | `da` |
 | :flag_se: | Svenska | `sv` |
 
-Every language carries the full set of interface keys. Some text stays in English whatever you pick: move, item and costume names, and anything stored rather than translated, such as quick-pick names and the site title. In Dutch, Portuguese, Brazilian Portuguese and Danish, Pokemon names are English too, because Poracle has no translation to serve. [What is not translated](#what-is-not-translated) has the full list.
+Every language carries the full set of interface keys. Some text stays in English whatever you pick: move and item names, costume names in every language but French, and anything stored rather than translated, such as quick-pick names and the site title. In Dutch, Portuguese, Brazilian Portuguese and Danish, Pokemon names are English too, because Poracle has no translation to serve. [What is not translated](#what-is-not-translated) has the full list.
 
 ![The Pokemon page in German, with a PvP card](../screenshots/display-language-de.png)
 
@@ -195,13 +195,13 @@ GET /api/masterdata/monsters?locale=de
 
 Switching the display language re-fetches them, so an open species picker updates in place. Searching works on the translated names too — typing `bi` finds Bisasam.
 
-Three things this does not cover:
+Costume names come the same way, from `GET /api/masterdata/costumes?locale=`, which PoracleNG 5.4.0 added. They're translated where Poracle's own bundle has them, which as of 5.4.0 means French; every other language gets the English name. Switching the display language re-fetches them with the species names.
+
+Two things this does not cover:
 
 Move and item names stay English. Poracle serves no translated equivalent for them, so they come from the [WatWowMap masterfile](https://github.com/WatWowMap/Masterfile-Generator) as before.
 
-Costume names stay English too, in every interface language. They're not in the endpoint above: the poracle-shaped masterfile carries no costume map, so the [costume picker](alarms.md#costume-filter) reads the raw WatWowMap file, the same one Poracle downloads for its own costume lookups. Poracle translates costume names internally but exposes no endpoint serving them. A costume too new for that file shows as its number rather than a name.
-
-A Poracle that can't answer (unreachable, or without the endpoint) falls back to the same English masterfile, so the pickers keep working rather than emptying out.
+A Poracle that can't answer (unreachable, or answering nothing usable) falls back to the same English masterfile for species and costume names, so the pickers keep working rather than emptying out. A costume too new for either shows as its number rather than a name.
 
 ### Rule summaries follow the alert language
 
@@ -213,7 +213,7 @@ Poracle ships translations for `de`, `en`, `es`, `fr`, `it`, `ja`, `nb-no`, `pl`
 
 ### What Is NOT Translated
 
-- move, item and costume names (see above)
+- move and item names, and costume names outside French (see above)
 - what admins configure: the site title, logo, custom navigation links, quick-pick names and descriptions
 - what users name: profiles, geofences, saved places, and area names from Koji
 

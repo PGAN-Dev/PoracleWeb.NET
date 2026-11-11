@@ -49,6 +49,36 @@ public class PoracleApiProxyDisableFlagTests
         Assert.Equal(["raid", "quest", "pokestop"], config?.DisabledHooks);
     }
 
+    /// <summary>
+    /// PoracleNG 5.4.0's <c>[tracking] default_edit</c>, published as <c>defaultEdit</c>: the alert types the
+    /// server edits in place whether or not a rule asks for it. The SPA labels such rules, as <c>!tracked</c> does.
+    /// </summary>
+    [Fact]
+    public async Task DefaultEditEntriesAreParsed()
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(
+            HttpStatusCode.OK, /*lang=json,strict*/ """{"defaultEdit":["pokemon","raid","",5,"incident"]}"""));
+
+        var config = await sut.GetConfigAsync();
+
+        Assert.Equal(["pokemon", "raid", "incident"], config?.DefaultEdit);
+    }
+
+    /// <summary>Prod publishes <c>[]</c>; a server before #346 publishes nothing. Both mean no type edits by default.</summary>
+    [Theory]
+    [InlineData(/*lang=json,strict*/ """{"defaultEdit":[]}""")]
+    [InlineData(/*lang=json,strict*/ """{"locale":"en"}""")]
+    [InlineData(/*lang=json,strict*/ """{"defaultEdit":"pokemon"}""")]
+    public async Task DefaultEditIsEmptyWhenAbsentEmptyOrMalformed(string body)
+    {
+        var sut = CreateSut(new MockHttpMessageHandler(HttpStatusCode.OK, body));
+
+        var config = await sut.GetConfigAsync();
+
+        Assert.NotNull(config);
+        Assert.Empty(config.DefaultEdit);
+    }
+
     [Fact]
     public async Task AbsentDisabledHooksLeavesTheListNull()
     {
