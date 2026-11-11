@@ -1,5 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -14,6 +15,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ConfigService } from '../../core/services/config.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { PokestopEventService } from '../../core/services/pokestop-event.service';
+import { PoracleConfigService } from '../../core/services/poracle-config.service';
 
 /**
  * The list is the only surface that names an event, so an event id this build has no entry for must
@@ -54,6 +56,8 @@ describe('PokestopEventListComponent', () => {
     dialog.open.mockReturnValue({ afterClosed: () => of(value) });
   }
 
+  /** What PoracleNG lists under `[tracking] default_edit`; set before `setup()`. */
+  let defaultEdit: string[] = [];
   function setup(items: PokestopEvent[] | Observable<PokestopEvent[]>, areas: string[] = [], query: Record<string, string> = {}): void {
     dialog = { open: jest.fn().mockReturnValue({ afterClosed: () => of(undefined) }) };
     snackBar = { open: jest.fn() };
@@ -79,6 +83,7 @@ describe('PokestopEventListComponent', () => {
         { provide: AreaService, useValue: { getSelected: () => of(areas) } },
         { provide: PokestopEventService, useValue: pokestopEventService },
         { provide: AuthService, useValue: { isImpersonating: () => false, user: () => ({ type: 'discord:user' }) } },
+        { provide: PoracleConfigService, useValue: { load: () => of(undefined), serverConfig: signal({ defaultEdit }) } },
       ],
       imports: [PokestopEventListComponent],
     });
@@ -330,6 +335,45 @@ describe('PokestopEventListComponent', () => {
       expect(component.isAutoDelete(4)).toBe(false);
       expect(component.isAutoDelete(6)).toBe(false);
       expect(component.isAutoDelete(7)).toBe(true);
+    });
+  });
+
+  describe('the server-default edit tag', () => {
+    // PoracleNG applies `default_edit = ["incident"]` on its showcase path only; Kecleon and Gold Stop
+    // alerts come through the invasion path, which never edits. The tag must not promise an edit there.
+    function tags(): string[] {
+      // The chip's text starts with its icon ligature; the key after it is what matters.
+      return Array.from(fixture.nativeElement.querySelectorAll('app-edit-default-tag .rule-tag')).map(t =>
+        (t as HTMLElement).textContent!.replace('edit_note', '').trim(),
+      );
+    }
+
+    afterEach(() => {
+      defaultEdit = [];
+    });
+
+    it('shows on a Showcase rule without the edit bit when incident is listed', () => {
+      defaultEdit = ['incident'];
+      setup([{ ...base, clean: 0, displayType: SHOWCASE, eventName: 'showcase' }]);
+
+      expect(tags()).toEqual(['ALARM.STATUS_EDIT_DEFAULT']);
+    });
+
+    it('stays off Kecleon and Gold Stop rules even when incident is listed', () => {
+      defaultEdit = ['incident'];
+      setup([
+        { ...base, uid: 1, clean: 0, displayType: KECLEON, eventName: 'kecleon' },
+        { ...base, uid: 2, clean: 0, displayType: GOLD_STOP, eventName: 'gold-stop' },
+      ]);
+
+      expect(tags()).toEqual([]);
+    });
+
+    it('stays off every card when incident is not listed', () => {
+      defaultEdit = ['pokemon', 'raid'];
+      setup([{ ...base, clean: 0, displayType: SHOWCASE, eventName: 'showcase' }]);
+
+      expect(tags()).toEqual([]);
     });
   });
 
