@@ -41,7 +41,7 @@
             </mat-select>
           </mat-form-field>
         } @else {
-          <p class="event-hint">{{ 'INVASIONS.GENDER_FILTER_NA' | translate }}</p>
+          <p class="event-hint">{{ (isEvent ? 'INVASIONS.GENDER_FILTER_NA' : 'INVASIONS.GENDER_FIXED_NA') | translate }}</p>
         }
       </div>
     </mat-tab>

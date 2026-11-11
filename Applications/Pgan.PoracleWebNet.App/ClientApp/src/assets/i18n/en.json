@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Any gender",
     "GENDER_LABEL": "Gender",
     "GENDER_FILTER_NA": "Gender filter does not apply to Pokéstop events.",
+    "GENDER_FIXED_NA": "Gender filter does not apply: this grunt type has a fixed gender.",
     "UNKNOWN_GRUNT": "Unknown grunt",
     "SNACK_ALL_CREATED": "All invasions alarm created",
     "CONFIRM_DELETE_TITLE": "Delete invasion alarm",

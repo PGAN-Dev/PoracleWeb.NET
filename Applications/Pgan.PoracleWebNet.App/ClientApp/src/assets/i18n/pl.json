@@ -683,6 +683,7 @@
     "GENDER_ANY_LABEL": "Dowolna płeć",
     "GENDER_LABEL": "Płeć",
     "GENDER_FILTER_NA": "Filtr płci nie dotyczy zdarzeń PokéStop.",
+    "GENDER_FIXED_NA": "Filtr płci nie dotyczy tego typu: ten typ rekruta ma stałą płeć.",
     "UNKNOWN_GRUNT": "Nieznany pomocnik",
     "SNACK_ALL_CREATED": "Alarm wszystkich inwazji utworzony",
     "CONFIRM_DELETE_TITLE": "Usuń alarm inwazji",
