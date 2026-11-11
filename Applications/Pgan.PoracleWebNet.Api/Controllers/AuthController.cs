@@ -619,7 +619,8 @@ public partial class AuthController(
             });
         }
 
-        if (!this._telegramSettings.Enabled)
+        // Enabled alone is not enough: without the bot token there is nothing to verify the payload against.
+        if (!SignInConfiguration.TelegramConfigured(this._telegramSettings))
         {
             return this.BadRequest(new
             {
@@ -755,7 +756,7 @@ public partial class AuthController(
 
         return this.Ok(new
         {
-            enabled = this._telegramSettings.Enabled && !disabledBySetting,
+            enabled = SignInConfiguration.TelegramConfigured(this._telegramSettings) && !disabledBySetting,
             botUsername = await this.ResolveTelegramBotUsernameAsync(),
         });
     }
@@ -796,9 +797,9 @@ public partial class AuthController(
         // a site may sign people in through Telegram or OIDC alone.
         var discordConfigured = SignInConfiguration.DiscordConfigured(this._discordSettings);
 
-        // Telegram is "configured" if Telegram:Enabled is true in .env/appsettings
-        // (auto-inferred by Program.cs when bot credentials are present).
-        var telegramConfigured = this._telegramSettings.Enabled;
+        // Telegram is "configured" when Telegram:Enabled is true in .env/appsettings (auto-inferred by
+        // Program.cs when bot credentials are present) and the bot token the login is verified against is set.
+        var telegramConfigured = SignInConfiguration.TelegramConfigured(this._telegramSettings);
 
         // Admin can disable either provider at runtime via site_settings without restart.
         // Absent/null = enabled (safe default — prevents lockout on first-time setup).

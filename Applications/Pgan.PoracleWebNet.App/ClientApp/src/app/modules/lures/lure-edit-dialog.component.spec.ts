@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { provideTranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
@@ -137,6 +138,29 @@ describe('LureEditDialogComponent', () => {
       component.save();
       expect(lureService.update).toHaveBeenCalledWith(42, expect.objectContaining({ clean: 2 }));
       expect(dialogRef.close).toHaveBeenCalledWith(true);
+    });
+  });
+
+  describe('an ordinary save (no move)', () => {
+    it('shows the updated toast, not a move toast, when the plain PUT answers with the alarm body', () => {
+      setup({ ...baseLure });
+      lureService.update.mockReturnValue(of({ uid: 42, lureId: 501 }));
+      const open = jest.spyOn((component as unknown as { snackBar: MatSnackBar }).snackBar, 'open');
+
+      component.save();
+
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(open.mock.calls[0][0]).toBe('LURES.SNACK_UPDATED');
+    });
+
+    it('still shows the move toast when the service reports a real move', () => {
+      setup({ ...baseLure });
+      lureService.update.mockReturnValue(of({ destination: 'telegram', status: 'moved' }));
+      const open = jest.spyOn((component as unknown as { snackBar: MatSnackBar }).snackBar, 'open');
+
+      component.save();
+
+      expect(open.mock.calls[0][0]).toContain('ALARM.MOVED_TO');
     });
   });
 

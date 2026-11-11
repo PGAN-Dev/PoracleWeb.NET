@@ -24,6 +24,12 @@ describe('moveEditMessage', () => {
     expect(moveEditMessage(null, t)).toBeNull();
   });
 
+  it('is null for an alarm body that is not a move result (a plain PUT answers with the alarm)', () => {
+    expect(moveEditMessage({ uid: 7, lureId: 501 } as never, t)).toBeNull();
+    expect(moveEditMessage({ destination: 'telegram' } as never, t)).toBeNull();
+    expect(moveEditMessage({ status: 'moved' } as never, t)).toBeNull();
+  });
+
   it('says it moved', () => {
     expect(moveEditMessage({ destination: 'telegram', status: 'moved' }, t)).toContain('ALARM.MOVED_TO');
   });
