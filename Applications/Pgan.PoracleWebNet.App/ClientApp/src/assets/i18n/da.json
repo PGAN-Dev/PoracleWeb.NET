@@ -1530,6 +1530,7 @@
     "SIGN_IN_AGAIN": "Log ind igen"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Vi kunne ikke få forbindelse til serveren lige nu. Du er stadig logget ind; vi prøver igen.",
     "ADMIN_ONLY": "Den side er kun for administratorer.",
     "FEATURE_DISABLED": "Denne funktion er deaktiveret af administratoren."
   },

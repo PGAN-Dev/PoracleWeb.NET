@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A hiccup on `/api/auth/me` no longer sends a signed-in member to the sign-in page.** A rate limit, a server restart or a dropped connection on the first load of a page was read as "signed out", though the token was fine and a reload went straight back. The app now asks again after a moment, and if the server still can't answer it keeps you on the page with a message and keeps trying in the background. Only a 401 signs you out.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11

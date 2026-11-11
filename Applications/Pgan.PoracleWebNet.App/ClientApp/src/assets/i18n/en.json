@@ -1530,6 +1530,7 @@
     "SIGN_UP_DESC": "Don't have an account? Sign up to get started."
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "We couldn't reach the server just now. You're still signed in; we'll keep trying.",
     "ADMIN_ONLY": "That page is for admins.",
     "FEATURE_DISABLED": "This feature has been disabled by the administrator."
   },

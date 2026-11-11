@@ -1530,6 +1530,7 @@
     "SIGN_UP_DESC": "Non hai un account? Registrati per iniziare."
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Il server non è raggiungibile al momento. Sei ancora connesso/a; continueremo a riprovare.",
     "ADMIN_ONLY": "Quella pagina è riservata agli amministratori.",
     "FEATURE_DISABLED": "Questa funzione è stata disattivata dall'amministratore."
   },

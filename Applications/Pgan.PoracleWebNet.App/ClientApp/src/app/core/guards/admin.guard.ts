@@ -14,7 +14,7 @@ export const adminGuard: CanActivateFn = async () => {
   const returning = router.currentNavigation()?.extras.state?.[ADMIN_RETURN_KEY] === true;
 
   // Wait for user data to load before checking admin status
-  const user = await auth.waitForUser();
+  const user = await auth.waitForUserWithRetry();
 
   if (user?.isAdmin) {
     return true;

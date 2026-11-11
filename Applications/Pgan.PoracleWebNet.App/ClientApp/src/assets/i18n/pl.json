@@ -1612,6 +1612,7 @@
     "SIGN_IN_AGAIN": "Zaloguj się ponownie"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Nie udało się połączyć z serwerem. Nadal jesteś zalogowany; będziemy próbować dalej.",
     "ADMIN_ONLY": "Ta strona jest tylko dla administratorów.",
     "FEATURE_DISABLED": "Ta funkcja została wyłączona przez administratora."
   },

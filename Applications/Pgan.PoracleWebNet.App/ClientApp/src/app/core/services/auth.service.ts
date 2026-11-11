@@ -13,6 +13,20 @@ import { UserInfo, LoginResponse, TelegramConfig, AuthProviders } from '../model
 const TOKEN_KEY = 'poracle_token';
 const ADMIN_TOKEN_KEY = 'poracle_admin_token';
 
+/** Pause before the guard's one retry of a `/api/auth/me` that could not be answered. */
+export const SESSION_RETRY_DELAY_MS = 1500;
+
+/** Pauses between the background retries that follow a guard that gave up waiting. */
+const BACKGROUND_RETRY_DELAYS_MS = [5000, 15000, 30000];
+
+/**
+ * A `/api/auth/me` failure that says nothing about the token: no answer at all (0), a timeout, a rate limit
+ * or a server error. Anything else (403, 404...) keeps the old reading, that the sign-in did not hold.
+ */
+function isTransientStatus(status: number): boolean {
+  return status === 0 || status === 408 || status === 429 || status >= 500;
+}
+
 /**
  * The `#error=account_disabled&support_url=...` fragment LoginComponent reads back with
  * `new URLSearchParams(location.hash)` -- one `encodeURIComponent`-equivalent pass via
@@ -42,6 +56,7 @@ export class AuthService {
   private readonly _disabledAccountInfo = signal<{ supportUrl: string | null } | null>(null);
   private readonly _isImpersonating = signal(!!localStorage.getItem(ADMIN_TOKEN_KEY));
   private readonly _profileResynced = signal(false);
+  private readonly _sessionUnavailable = signal(false);
   private readonly alertLanguage = inject(AlertLanguageService);
   private readonly config = inject(ConfigService);
   private readonly currentUser = signal<UserInfo | null>(null);
@@ -58,6 +73,11 @@ export class AuthService {
   readonly isLoggedIn = computed(() => !!this.currentUser());
   readonly managedDestinations = computed(() => this.currentUser()?.managedDestinations ?? []);
   readonly profileResynced = this._profileResynced.asReadonly();
+  /**
+   * The last `/api/auth/me` could not be answered (network error, 429, 5xx) so nobody knows whether the token
+   * is good. Not the same as signed out: the token is kept and the guards let the member stay on their page.
+   */
+  readonly sessionUnavailable = this._sessionUnavailable.asReadonly();
   readonly user = this.currentUser.asReadonly();
 
   constructor() {
@@ -99,6 +119,7 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(ADMIN_TOKEN_KEY);
     this._isImpersonating.set(false);
+    this._sessionUnavailable.set(false);
     this.currentUser.set(null);
     this.userLoaded$.next(null);
   }
@@ -191,6 +212,15 @@ export class AuthService {
             resolve(null);
             return;
           }
+          if (isTransientStatus(err.status)) {
+            // The server could not say. The token may be perfectly good, so it stays, the user is left as
+            // it was, and the guards read this flag instead of treating the null as a sign-out.
+            this._sessionUnavailable.set(true);
+            this.userLoaded$.next(null);
+            resolve(null);
+            return;
+          }
+          this._sessionUnavailable.set(false);
           if (err.status === 401) {
             // Only the user object. The interceptor owns what happens to the tokens on a 401 -- either
             // ending the session, which empties this via sessionCleared$, or the impersonation fallback
@@ -204,6 +234,7 @@ export class AuthService {
           resolve(null);
         },
         next: user => {
+          this._sessionUnavailable.set(false);
           // Handle JWT profile resync — when PoracleNG changes the active profile
           // out-of-band (active_hours scheduler, bot commands), the backend detects
           // the mismatch and returns a refreshed token with the correct profileNo.
@@ -267,6 +298,21 @@ export class AuthService {
     void Promise.resolve(this.router.navigate(['/login'], { queryParams: { loggedout: 1 } })).finally(() => this.currentUser.set(null));
   }
 
+  /**
+   * Keeps asking `/api/auth/me` after a guard gave up waiting, so the signed-in shell appears once the
+   * server answers. Stops on the first answer of any kind (a 401 is an answer) and after the last pause.
+   */
+  retrySessionInBackground(): void {
+    const attempt = (index: number): void => {
+      if (index >= BACKGROUND_RETRY_DELAYS_MS.length) return;
+      setTimeout(() => {
+        if (!this._sessionUnavailable() || !this.isAuthenticated()) return;
+        void this.loadCurrentUser().then(() => attempt(index + 1));
+      }, BACKGROUND_RETRY_DELAYS_MS[index]);
+    };
+    attempt(0);
+  }
+
   /** Store a new JWT token (e.g. after profile switch). */
   setToken(token: string): void {
     localStorage.setItem(TOKEN_KEY, token);
@@ -300,6 +346,17 @@ export class AuthService {
   /** Returns a promise that resolves once the user has been loaded (or failed). */
   waitForUser(): Promise<UserInfo | null> {
     return firstValueFrom(this.userLoaded$);
+  }
+
+  /**
+   * Like {@link waitForUser}, but a load that was merely unavailable (see {@link sessionUnavailable}) is asked
+   * once more after a short pause before the caller decides what null means.
+   */
+  async waitForUserWithRetry(): Promise<UserInfo | null> {
+    const user = await this.waitForUser();
+    if (user || !this._sessionUnavailable() || !this.isAuthenticated()) return user;
+    await new Promise(resolve => setTimeout(resolve, SESSION_RETRY_DELAY_MS));
+    return this.loadCurrentUser();
   }
 
   private handleAuthResponse(res: LoginResponse): void {

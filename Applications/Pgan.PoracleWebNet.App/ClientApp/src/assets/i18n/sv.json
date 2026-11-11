@@ -1530,6 +1530,7 @@
     "SIGN_IN_AGAIN": "Logga in igen"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Vi kunde inte nå servern just nu. Du är fortfarande inloggad; vi fortsätter försöka.",
     "ADMIN_ONLY": "Den sidan är bara för administratörer.",
     "FEATURE_DISABLED": "Den här funktionen har inaktiverats av administratören."
   },

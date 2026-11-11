@@ -1530,6 +1530,7 @@
     "SIGN_IN_AGAIN": "Iniciar sessão novamente"
   },
   "ERROR": {
+    "SESSION_UNAVAILABLE": "Não foi possível contactar o servidor agora. Continua com a sessão iniciada; vamos continuar a tentar.",
     "ADMIN_ONLY": "Essa página é só para administradores.",
     "FEATURE_DISABLED": "Esta funcionalidade foi desativada pelo administrador."
   },
