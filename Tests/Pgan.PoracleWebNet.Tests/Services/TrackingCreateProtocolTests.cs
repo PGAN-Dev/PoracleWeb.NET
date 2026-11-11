@@ -506,6 +506,65 @@ public class TrackingCreateProtocolTests
     }
 
     [Fact]
+    public async Task ATrustedBatchStillClampsTheDistanceOfRowsWithoutOverrideAreas()
+    {
+        // One trusted flag covers the whole POST and PoracleNG skips its max_distance clamp for all of it, so
+        // a row with a huge radius must not ride along on its neighbour's override area.
+        this._policy
+            .Setup(p => p.EnsureOverrideAreasAllowedAsync("user1", It.IsAny<IReadOnlyCollection<string>>(), null))
+            .Returns(Task.CompletedTask);
+        this._policy.Setup(p => p.ClampDistanceAsync("user1", 5000000)).ReturnsAsync(10000);
+        var handler = new Handler(sent => IsDryRun(sent)
+            ? Reply.Ok(Envelope(true, created: """[{"uid":0},{"uid":0}]"""))
+            : Reply.Ok(Envelope(false, created: """[{"uid":61},{"uid":62}]""")));
+
+        var result = await this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""[{"pokemon_id":25,"distance":0,"override_areas":["my park"]},{"pokemon_id":26,"distance":5000000}]"""));
+
+        Assert.Equal($"{Base}?silent=true&trusted=true", handler.Requests[1].Url);
+        foreach (var request in handler.Requests)
+        {
+            using var body = JsonDocument.Parse(request.Body!);
+            Assert.False(body.RootElement[0].TryGetProperty("distance", out var first) && first.GetInt32() != 0);
+            Assert.Equal(10000, body.RootElement[1].GetProperty("distance").GetInt32());
+        }
+
+        Assert.Equal([61, 62], result.RowUids);
+    }
+
+    [Fact]
+    public async Task ATrustedBatchForAnExemptUserIsNotClamped()
+    {
+        this._policy
+            .Setup(p => p.EnsureOverrideAreasAllowedAsync("user1", It.IsAny<IReadOnlyCollection<string>>(), null))
+            .Returns(Task.CompletedTask);
+        this._policy.Setup(p => p.ClampDistanceAsync("user1", 5000000)).ReturnsAsync(5000000);
+        var handler = new Handler(sent => IsDryRun(sent)
+            ? Reply.Ok(Envelope(true, created: """[{"uid":0},{"uid":0}]"""))
+            : Reply.Ok(Envelope(false, created: """[{"uid":61},{"uid":62}]""")));
+
+        await this.CreateSut(handler).CreateAsync(
+            "pokemon", "user1", Json("""[{"pokemon_id":25,"distance":0,"override_areas":["my park"]},{"pokemon_id":26,"distance":5000000}]"""));
+
+        using var body = JsonDocument.Parse(handler.Requests[1].Body!);
+        Assert.Equal(5000000, body.RootElement[1].GetProperty("distance").GetInt32());
+    }
+
+    [Fact]
+    public async Task AnUntrustedBatchIsLeftToPoracleNgToClamp()
+    {
+        var handler = new Handler(sent => IsDryRun(sent)
+            ? Reply.Ok(Envelope(true, created: """[{"uid":0}]"""))
+            : Reply.Ok(Envelope(false, created: """[{"uid":61}]""")));
+
+        await this.CreateSut(handler).CreateAsync("pokemon", "user1", Json("""[{"pokemon_id":26,"distance":5000000}]"""));
+
+        using var body = JsonDocument.Parse(handler.Requests[1].Body!);
+        Assert.Equal(5000000, body.RootElement[0].GetProperty("distance").GetInt32());
+        this._policy.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task ForeignPrivateFenceRefusedNoRequest()
     {
         this._policy

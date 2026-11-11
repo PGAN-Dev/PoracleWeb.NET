@@ -182,6 +182,26 @@ public class PoracleIncidentProxyTests
     }
 
     [Fact]
+    public async Task ATrustedBatchClampsTheDistanceOfRulesBesideTheOverrideAreaOne()
+    {
+        // One trusted flag covers the whole POST, and PoracleNG skips its max_distance clamp under it.
+        var policy = new Mock<IUserAreaPolicy>();
+        policy.Setup(p => p.ClampDistanceAsync("u1", 5000000)).ReturnsAsync(10000);
+        var handler = new Handler(new Reply(HttpStatusCode.OK, CreatedOk));
+
+        await CreateSut(handler, policy.Object).CreateAsync("u1", [
+            new PokestopEvent { DisplayType = PokestopEventTypes.Showcase, OverrideAreas = ["my fence"] },
+            new PokestopEvent { DisplayType = 8, Distance = 5000000 },
+        ]);
+
+        var request = Assert.Single(handler.Requests);
+        Assert.Contains("trusted=true", request.Url, StringComparison.Ordinal);
+        using var body = JsonDocument.Parse(request.Body!);
+        Assert.Equal(0, body.RootElement[0].GetProperty("distance").GetInt32());
+        Assert.Equal(10000, body.RootElement[1].GetProperty("distance").GetInt32());
+    }
+
+    [Fact]
     public async Task ABlankOverrideAreaNameDoesNotRideTheTrustedWrite()
     {
         var policy = new Mock<IUserAreaPolicy>();
