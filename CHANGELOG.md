@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **An alarm that asks for edit-in-place on a type that can't edit is refused with a clear message.** PoracleNG refuses the edit bit (clean 2, 3, 6 or 7) on quest, invasion, nest, gym and max battle alarms, but PoracleWeb.NET accepted it on every type and showed PoracleNG's raw "edit is not supported for gym tracking" text. The create and update requests for those five types now answer 400 naming edit-in-place, a quick pick whose clean override carries the bit is refused the same way before anything is written, and the last step before PoracleNG refuses it too. Pokémon, raid, egg, lure and Pokéstop event alarms keep every value, and the app's own dialogs and cleaning page never sent the bit.
 - **The server-default edit tag no longer shows on Kecleon and Gold Stop cards.** PoracleNG applies `default_edit` for `incident` on its showcase path only; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so with `incident` listed those cards promised an in-place edit the member never got. The tag now shows on Showcase cards alone, and the alarms doc says so.
 
 ## [3.8.0] - 2026-11-11
