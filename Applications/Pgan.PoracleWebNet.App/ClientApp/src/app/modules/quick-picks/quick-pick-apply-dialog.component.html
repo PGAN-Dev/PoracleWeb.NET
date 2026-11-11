@@ -59,6 +59,7 @@
         <h4>{{ 'ALARM.MESSAGE_SETTINGS' | translate }}</h4>
         <app-template-selector
           [alarmType]="data.definition.alarmType"
+          [side]="templateSide()"
           [value]="deliveryForm.controls.template.value ?? ''"
           (valueChange)="deliveryForm.controls.template.setValue($event)">
         </app-template-selector>

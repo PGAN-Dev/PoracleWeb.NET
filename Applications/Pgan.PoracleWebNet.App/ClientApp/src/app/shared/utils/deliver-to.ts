@@ -17,7 +17,8 @@ export function moveTargetFor(original: LinkSide | null | undefined, chosen: Lin
 
 /** What an edit says after it moved its alarm, or null for an ordinary save (which keeps its own message). */
 export function moveEditMessage(edit: MoveEdit | null | undefined | void, i18n: I18nService): null | string {
-  if (!edit) return null;
+  // Anything without a real move status (a plain PUT's alarm body) is an ordinary save.
+  if (!edit || (edit.status !== 'moved' && edit.status !== 'source_remains') || !edit.destination) return null;
   const app = i18n.instant(appKey(edit.destination));
   if (edit.status === 'moved') return i18n.instant('ALARM.MOVED_TO', { app });
   return i18n.instant('ALARM.MOVED_SOURCE_REMAINS', { app, from: i18n.instant(appKey(otherSide(edit.destination))) });

@@ -21,6 +21,7 @@ public class ProfileController(
     IUserAreaWriter areaWriter,
     IPairedHumanWriter pairWriter,
     IUserAreaPolicy areaPolicy,
+    IProfileOverviewService profileOverviewService,
     ILogger<ProfileController> logger) : BaseApiController
 {
     private readonly IProfileService _profileService = profileService;
@@ -31,6 +32,7 @@ public class ProfileController(
     private readonly IUserAreaWriter _areaWriter = areaWriter;
     private readonly IPairedHumanWriter _pairWriter = pairWriter;
     private readonly IUserAreaPolicy _areaPolicy = areaPolicy;
+    private readonly IProfileOverviewService _profileOverviewService = profileOverviewService;
     private readonly ILogger<ProfileController> _logger = logger;
 
     [HttpGet]
@@ -334,8 +336,11 @@ public class ProfileController(
                     this._humanProxy, this._areaPolicy, id, no, sourceProfile.Area ?? "[]",
                     sourceProfile.Latitude, sourceProfile.Longitude);
 
-                // Copy all alarms from source to new profile
-                await this._profileService.CopyAsync(id, request.FromProfileNo, no);
+                // Copy all alarms from source to new profile. The overview duplicate's copy: it refuses a
+                // source carrying a type this site has switched off before anything is copied (#236), which
+                // this route skipped by calling PoracleNG's profile copy directly, so with disable_raids on
+                // it answered 201 with the raid rows copied.
+                await this._profileOverviewService.DuplicateProfileAsync(id, request.FromProfileNo, no);
             }
             catch
             {
@@ -360,6 +365,14 @@ public class ProfileController(
         if (existing == null)
         {
             return this.NotFound();
+        }
+
+        // The SPA only disables the button for the active profile, so the API has to refuse on its own:
+        // deleting the last profile leaves its alarms orphaned at that number, and they attach themselves
+        // to whatever profile is later created there.
+        if ((await this._profileService.GetByUserAsync(this.UserId)).Count() <= 1)
+        {
+            return this.BadRequest(new { error = "You can't delete your only profile." });
         }
 
         // PoracleNG cascade-deletes alarms scoped to (id, profile_no) and

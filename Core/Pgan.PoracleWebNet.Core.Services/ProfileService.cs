@@ -74,8 +74,6 @@ public class ProfileService(IPoracleHumanProxy humanProxy) : IProfileService
         return profiles.Find(p => p.ProfileNo == profileNo);
     }
 
-    public async Task CopyAsync(string userId, int fromProfileNo, int toProfileNo) =>
-        await this._humanProxy.CopyProfileAsync(userId, fromProfileNo, toProfileNo);
 
     /// <summary>
     /// Deserializes the PoracleNG profiles response.

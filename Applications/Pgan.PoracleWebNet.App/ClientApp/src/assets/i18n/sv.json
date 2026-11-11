@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Alla kön",
     "GENDER_LABEL": "Kön",
     "GENDER_FILTER_NA": "Könsfilter gäller inte för PokéStop-händelser.",
+    "GENDER_FIXED_NA": "Könsfilter gäller inte: den här grunt-typen har ett fast kön.",
     "UNKNOWN_GRUNT": "Okänd grunt",
     "SNACK_ALL_CREATED": "Larm för alla invasioner skapat",
     "CONFIRM_DELETE_TITLE": "Radera invasionslarm",

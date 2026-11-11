@@ -649,6 +649,7 @@
     "GENDER_ANY_LABEL": "Qualquer gênero",
     "GENDER_LABEL": "Gênero",
     "GENDER_FILTER_NA": "Filtro de gênero não se aplica a eventos de PokéStop.",
+    "GENDER_FIXED_NA": "O filtro de gênero não se aplica: este tipo de recruta tem um gênero fixo.",
     "UNKNOWN_GRUNT": "Recruta desconhecido",
     "SNACK_ALL_CREATED": "Alarme de todas as invasões criado",
     "CONFIRM_DELETE_TITLE": "Excluir alarme de invasão",
