@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.1] - 2026-11-12
+
 ### Fixed
 
 - **Telegram sign-in and linking need the bot token, not just `TELEGRAM_ENABLED`.** The login widget's hash is checked with a key derived from the bot token, so with `TELEGRAM_ENABLED=true` and a blank `TELEGRAM_BOT_TOKEN` the key was derived from an empty string and a payload naming any Telegram id could be signed by anyone and accepted, at sign-in and when linking a Telegram account to a Discord one. The verifier now refuses a blank token outright, and sign-in, account linking, the provider list and the Telegram widget config all use the same "enabled and has a token" test the startup check and the configuration reference already describe, so a half-configured site shows no Telegram button rather than an unsafe one.
@@ -1588,7 +1590,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.8.0...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.8.1...HEAD
+[3.8.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.6.0...v3.7.0
 [3.6.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.5.0...v3.6.0
