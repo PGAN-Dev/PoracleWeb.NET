@@ -43,7 +43,7 @@ import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete } from '../../shared/utils/clean-flags';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny, skippedNames } from '../../shared/utils/distance-update';
 import { pokestopEventInfo } from '../../shared/utils/pokestop-events';
 import { serverReason } from '../../shared/utils/server-reason';
 
@@ -194,7 +194,12 @@ export class PokestopEventListComponent implements OnInit {
     this.selectMode.set(false);
     this.loadItems();
     this.snackBar.open(
-      distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
+      distanceUpdateMessage(
+        result,
+        this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length),
+        this.i18n,
+        skippedNames(result?.skippedConflict, this.events(), i => this.eventLabel(i)),
+      ),
       this.i18n.instant('COMMON.OK'),
       {
         duration: skippedAny(result) ? 6000 : 3000,
@@ -320,6 +325,15 @@ export class PokestopEventListComponent implements OnInit {
   /** Angular templates cannot parse bitwise `&`, so the clean bitmask is read here. */
   isAutoDelete(clean: number): boolean {
     return isAutoDelete(clean);
+  }
+
+  /**
+   * Whether PoracleNG's `default_edit` for `incident` reaches this rule. Only its showcase path applies
+   * the default; Kecleon and Gold Stop alerts come through the invasion path, which never edits, so the
+   * server-default tag would promise an edit those members never get.
+   */
+  isShowcase(item: PokestopEvent): boolean {
+    return pokestopEventInfo(item.displayType)?.name === 'showcase';
   }
 
   /** `then` runs once the list has answered, loaded or not. */

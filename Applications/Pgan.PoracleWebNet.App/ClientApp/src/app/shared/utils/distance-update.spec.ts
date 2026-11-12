@@ -1,4 +1,4 @@
-import { combineDistanceResults, distanceUpdateMessage, skippedAny, Translator } from './distance-update';
+import { combineDistanceResults, distanceUpdateMessage, skippedAny, skippedNames, Translator } from './distance-update';
 
 describe('distance-update', () => {
   const translate: Translator = {
@@ -72,6 +72,39 @@ describe('distance-update', () => {
     it('counts conflict-skipped rules', () => {
       expect(skippedAny({ skippedConflict: [5], updated: 0 })).toBe(true);
       expect(skippedAny({ skippedConflict: [], updated: 0 })).toBe(false);
+    });
+  });
+
+  describe('naming the rules left alone', () => {
+    it('adds the names after the count when the caller has them', () => {
+      expect(distanceUpdateMessage({ skippedConflict: [3, 6], updated: 4 }, 'Done', translate, ['Pikachu', 'Mewtwo'])).toBe(
+        'Done. WHERE.DISTANCE_SKIPPED_CONFLICT({"count":2}) WHERE.DISTANCE_SKIPPED_NAMES({"names":"Pikachu, Mewtwo"})',
+      );
+    });
+
+    it('stops at three names and counts the rest', () => {
+      expect(
+        distanceUpdateMessage({ skippedConflict: [1, 2, 3, 4, 5], updated: 0 }, 'Done', translate, ['A', 'B', 'C', 'D', 'E']),
+      ).toContain('"names":"A, B, C +2"');
+    });
+
+    it('is unchanged when the caller has no names', () => {
+      expect(distanceUpdateMessage({ skippedConflict: [3], updated: 4 }, 'Done', translate)).toBe(
+        'Done. WHERE.DISTANCE_SKIPPED_CONFLICT({"count":1})',
+      );
+      expect(distanceUpdateMessage({ skippedConflict: [3], updated: 4 }, 'Done', translate, [])).toBe(
+        'Done. WHERE.DISTANCE_SKIPPED_CONFLICT({"count":1})',
+      );
+    });
+
+    it('skippedNames looks the uids up in the list, once each, and ignores a uid it cannot find', () => {
+      const items = [
+        { name: 'Pikachu', uid: 1 },
+        { name: 'Mewtwo', uid: 2 },
+      ];
+
+      expect(skippedNames([2, 1, 2, 99], items, i => i.name)).toEqual(['Mewtwo', 'Pikachu']);
+      expect(skippedNames(undefined, items, i => i.name)).toEqual([]);
     });
   });
 });

@@ -8,7 +8,7 @@ The Profiles page provides a consolidated view of all profiles and their alarms 
 
 ![The Profiles page with three profiles, one with a schedule, expanded to show its schedule chip and actions](../screenshots/profiles.png)
 
-A stats bar at the top counts alarms per type across all profiles. The search bar filters every profile's alarms by name, Pokemon or other attributes, and ten type chips (Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Lures, Nests, Gyms and Fort Changes) narrow the view. Each profile is an expandable panel with its alarms grouped by type.
+A stats bar at the top counts alarms per type across all profiles. The search bar filters every profile's alarms by name, Pokemon or other attributes, and eleven type chips (Pokemon, Raids, Eggs, Max Battles, Quests, Invasions, Pokéstop Events, Lures, Nests, Gyms and Fort Changes) narrow the view. Each profile is an expandable panel with its alarms grouped by type.
 
 A rule that matches another rule of the same type carries an orange copy tag, so redundant filters stand out. Hovering the tag names the other profiles carrying it, or says the duplicates all sit on this one.
 
@@ -22,10 +22,11 @@ A rule that matches another rule of the same type carries an orange copy tag, so
     them — so the number you click is the number of cards you get. Duplicates within a single profile
     count too: 30 copies of one Pokemon rule on one profile is 30 duplicates.
 
-!!! warning "Pokéstop Event rules sit among the invasion rows"
-    Showcase, Kecleon and Gold Stop rules have no section of their own in the overview. They are listed
-    among the invasion rows, with the event name as the grunt. **Export** folds them into the invasion
-    list the same way, **Import** saves them back as Pokéstop Event rules, and **Duplicate** copies them
+Rules are named the way their own pages name them ("All Legendary raids", "3 star Egg", "Normal Lure"), so a rule reads the same here as on its list.
+
+!!! note "Pokéstop Event rules have their own row"
+    Showcase, Kecleon and Gold Stop rules get a **Pokéstop Events** row and chip, apart from Invasions, as on the Dashboard. PoracleNG sends them in the same list as invasions, so this page splits that list in two. **Export** folds them back into the invasion
+    list, **Import** saves them back as Pokéstop Event rules, and **Duplicate** copies them
     with the rest. Manage them from the [Pokéstop Events page](alarms.md#pokestop-event-alarms).
 
 ## Creating & Switching Profiles
@@ -72,7 +73,7 @@ The **download icon** saves a JSON backup file containing all alarms from that p
 
 1. Tap the **upload button** on the Profiles page
 2. Select a previously exported JSON backup file
-3. Choose a name for the new profile. A name you already use gets a numeric suffix, "Home (2)"
+3. Choose a name for the new profile. The box starts with the name from the file. If you already use that name, the dialog says so and **Import** stays off until you type another
 
 The alarms are written straight to the new profile, so your active profile stays as it is. Every alarm is checked before the first is saved, and one that already exists or would replace another is skipped. An import carries alarms only: the new profile starts with no areas, so pick them afterwards.
 

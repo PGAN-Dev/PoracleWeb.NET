@@ -117,11 +117,13 @@ describe('AlarmCardComponent', () => {
     expect(el.querySelector(`#${ids[1]}`)?.textContent?.trim()).toBe('DELIVER_TO.DELIVERED_TO');
   });
 
-  it('leaves an unlinked card without a group role or a changed name', () => {
+  it('names an unlinked card by its title, so Edit and Delete are read in context', () => {
     const el = create();
 
-    expect(card(el).getAttribute('role')).toBeNull();
-    expect(card(el).getAttribute('aria-labelledby')).toBeNull();
+    expect(card(el).getAttribute('role')).toBe('group');
+    const ids = (card(el).getAttribute('aria-labelledby') ?? '').split(' ');
+    expect(ids).toHaveLength(1);
+    expect(el.querySelector(`#${ids[0]}`)?.textContent?.trim()).toBe('Bulbasaur');
   });
 
   it('marks an alarm whose app is not receiving alerts, in its name and its tooltip', () => {

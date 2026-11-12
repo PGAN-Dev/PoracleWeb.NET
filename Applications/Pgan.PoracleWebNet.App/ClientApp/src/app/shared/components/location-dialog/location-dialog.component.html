@@ -1,6 +1,6 @@
 <h2 mat-dialog-title>{{ title() | translate }}</h2>
 @if (saving()) {
-  <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  <mat-progress-bar mode="indeterminate" [attr.aria-label]="'COMMON.SAVING' | translate"></mat-progress-bar>
 }
 <mat-dialog-content>
   @if (!geocodingDisabled) {
@@ -75,6 +75,9 @@
       }
     </mat-form-field>
   </div>
+  @if (originPinHint()) {
+    <p class="origin-hint" role="status">{{ 'DIALOG.LOCATION_ORIGIN_HINT' | translate }}</p>
+  }
 
   <!-- Resolved Address Display -->
   @if (resolvedAddress()) {

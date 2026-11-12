@@ -292,8 +292,10 @@ linked-account move. A refusal answers 400 with the limit in the message. Copyin
 to fix a difference isn't limited. The same upstream change lifts `[tracking] max_distance` for trusted
 writes, and every v2 `PATCH` is trusted, so both `PatchAsync` methods (tracking and Pokéstop events) pass a
 `distance` through `ClampDistanceAsync` first. It clamps rather than refuses, as PoracleNG does, with the same
-exemptions. Creates and edits don't need it: a trusted one carries override areas, and those can't carry a
-radius (#1122).
+exemptions. A single create or edit doesn't need it: a trusted one carries override areas, and those can't carry a
+radius (#1122). A create batch is different: one `trusted` flag covers the whole POST, so when any row names an
+override area the batch goes out trusted and `ClampDistancesAsync` caps the distance on every row in it, for
+tracking and Pokéstop events alike (#1154).
 
 Geofence polygons come from the Poracle API (via the unified feed), not the database.
 

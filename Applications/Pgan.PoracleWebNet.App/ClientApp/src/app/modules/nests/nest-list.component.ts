@@ -47,7 +47,7 @@ import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
-import { distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import { distanceUpdateMessage, DistanceUpdateResult, skippedAny, skippedNames } from '../../shared/utils/distance-update';
 import { serverReason } from '../../shared/utils/server-reason';
 
 @Component({
@@ -207,7 +207,12 @@ export class NestListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadNests();
       this.snackBar.open(
-        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
+        distanceUpdateMessage(
+          result,
+          this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length),
+          this.i18n,
+          skippedNames(result?.skippedConflict, this.nests(), i => this.getPokemonName(i.pokemonId)),
+        ),
         this.i18n.instant('COMMON.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,

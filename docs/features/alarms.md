@@ -30,7 +30,7 @@ Each alarm type has a dedicated page accessible from the sidebar navigation. The
 2. Pick the target on the first tab, which is named after the type. The Pokemon picker leads with a search box; **Add by type or generation** opens the generation and type buttons, and **Add multiple** takes a pasted list of names or Pokédex numbers, ranges such as `1-151` included. With a generation or type picked, **Select all** adds every species the filter matches, including the tiles folded behind **Show all**
 3. Configure filter options (IV range, CP range, level, etc.)
 4. On the **Delivery** tab, answer "Where should this alert reach you?" — see [Where an alert reaches you](#where-an-alert-reaches-you). A small map under the answer draws the radius or the areas you picked
-5. Under **Message** on the same tab, optionally pick a **template**, and set clean mode and the other message switches. Below the picker, a preview shows what the template looks like: a Discord embed for Discord accounts, a chat bubble for Telegram accounts (bold, italic, underline, strikethrough, code, links and spoilers in the template's `parse_mode`, with a line noting a sticker or location pin the template also sends). The preview fills in sample values, so the numbers aren't yours
+5. Under **Message** on the same tab, optionally pick a **template**, and set clean mode and the other message switches. Below the picker, a preview shows what the template looks like: a Discord embed for Discord accounts, a chat bubble for Telegram accounts, or, when your accounts are linked, for whichever app **Deliver to** is set to (the list of templates follows it too, and a template the other app doesn't have is swapped for that app's first one) (bold, italic, underline, strikethrough, code, links and spoilers in the template's `parse_mode`, with a line noting a sticker or location pin the template also sends). The preview fills in sample values, so the numbers aren't yours
 6. Save the alarm
 
 ## Editing alarms
@@ -255,7 +255,7 @@ Delete is the one red, filled button in the bar, and Change radius sits beside i
     |---|---|
     | "Skipped N limited to areas: a radius doesn't apply to them." | The alarm is limited to specific areas, which can't take a radius |
     | "Skipped N measured from a saved place: they need a radius." | The alarm measures from a saved place, so a zero can't apply |
-    | "Skipped N that would clash with another rule." | At the new radius it would match another alarm you have exactly, or close enough that PoracleNG would merge the two. A refusal PoracleNG gives no clearer reason for is counted here too |
+    | "Skipped N that would clash with another rule." followed by "Not changed: …" | At the new radius it would match another alarm you have exactly, or close enough that PoracleNG would merge the two. A refusal PoracleNG gives no clearer reason for is counted here too. The second line names up to three of the alarms, then how many more |
 
     Every alarm that was changed keeps its id. The cleaning toggle works the same way, changing only the clean setting.
 
@@ -288,11 +288,11 @@ The new profile inherits the source profile's areas, location, active hours and 
 
 Export writes a per-profile JSON backup of every alarm filter, without the internal fields (`uid`, `id`, `profile_no`), in the form `{ version: 1, exportedAt, profileName, alarms: { pokemon: [...], raid: [...], ... } }`.
 
-Import reads a backup into a new profile. The alarms are written straight to the new profile, so your active profile stays as it was, and every alarm is checked before the first one is saved. An alarm that already exists on the new profile, or would replace another, is skipped. Invasion rows that are really Pokéstop events (Kecleon, Gold Stop, Showcase) are saved as event rules, and a grunt saved as `metal` is imported as `steel`. A name you already use gets a numeric suffix, "Home (2)".
+Import reads a backup into a new profile. The alarms are written straight to the new profile, so your active profile stays as it was, and every alarm is checked before the first one is saved. An alarm that already exists on the new profile, or would replace another, is skipped. Invasion rows that are really Pokéstop events (Kecleon, Gold Stop, Showcase) are saved as event rules, and a grunt saved as `metal` is imported as `steel`. A name you already use is refused in the dialog: it starts with the name from the file, and **Import** stays off until you change it.
 
 ### Profile names
 
-The server doesn't require profile names to be unique, and accepts up to 255 characters. The dialogs are stricter: the add, duplicate and import dialogs flag a name you already use as you type, the edit dialog checks when you save, and the add and edit dialogs stop at 32 characters. Only import changes a clashing name itself, by adding a numeric suffix.
+The server doesn't require profile names to be unique, and accepts up to 255 characters. The dialogs are stricter: the add, edit, duplicate and import dialogs all flag a name you already use as you type and keep their button off until you change it, and the add and edit dialogs stop at 32 characters. Nothing renames a clashing name for you.
 
 ## Pokemon alarm filters
 
@@ -647,7 +647,9 @@ The modes combine (a quest can be both auto-delete and daily-summary, for exampl
 #### Edits the server decides
 
 PoracleNG 5.4.0 lets the operator list alert types that edit the original alert in place whatever the
-rule says (`[tracking] default_edit`; the supported types are pokemon, raid, egg, lure and incident).
+rule says (`[tracking] default_edit`; the supported types are pokemon, raid, egg, lure and incident,
+where incident reaches Showcases only: Kecleon and Gold Stop alerts take PoracleNG's invasion path,
+which never edits, so their cards never show the tag).
 The stored rule is left alone, so a rule without the edit bit still edits while its type is listed, and
 goes back to fresh messages when it is taken off the list. PoracleWeb.NET reads the list from PoracleNG
 and shows it rather than pretending the bit is the whole story: a card for a listed type whose rule

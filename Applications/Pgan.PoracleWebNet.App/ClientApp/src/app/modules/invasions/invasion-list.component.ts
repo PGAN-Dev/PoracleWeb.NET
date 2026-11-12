@@ -52,7 +52,13 @@ import { orderAlarms } from '../../shared/utils/alarm-order';
 import { AlarmScope, scopeOf, scopeToFields } from '../../shared/utils/alarm-scope';
 import { runBulkMove } from '../../shared/utils/bulk-move';
 import { isAutoDelete as cleanIsAutoDelete } from '../../shared/utils/clean-flags';
-import { combineDistanceResults, distanceUpdateMessage, DistanceUpdateResult, skippedAny } from '../../shared/utils/distance-update';
+import {
+  combineDistanceResults,
+  distanceUpdateMessage,
+  DistanceUpdateResult,
+  skippedAny,
+  skippedNames,
+} from '../../shared/utils/distance-update';
 import { swapToFallbackIcon } from '../../shared/utils/icon-fallback';
 import { invasionKind } from '../../shared/utils/pokestop-events';
 import { serverReason } from '../../shared/utils/server-reason';
@@ -231,7 +237,12 @@ export class InvasionListComponent implements OnInit {
       this.selectMode.set(false);
       this.loadInvasions();
       this.snackBar.open(
-        distanceUpdateMessage(result, this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length), this.i18n),
+        distanceUpdateMessage(
+          result,
+          this.i18n.plural('ALARM.SNACK_BULK_DISTANCE', result?.updated ?? uids.length),
+          this.i18n,
+          skippedNames(result?.skippedConflict, this.invasions(), i => this.getDisplayName(i.gruntType, i.gender)),
+        ),
         this.i18n.instant('TOAST.OK'),
         {
           duration: skippedAny(result) ? 6000 : 3000,

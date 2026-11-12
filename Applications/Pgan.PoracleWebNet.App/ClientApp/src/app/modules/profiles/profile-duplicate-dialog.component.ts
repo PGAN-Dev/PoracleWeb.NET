@@ -1,4 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
@@ -39,11 +40,22 @@ export class ProfileDuplicateDialogComponent {
   readonly dialogRef = inject(MatDialogRef<ProfileDuplicateDialogComponent>);
   readonly duplicating = signal(false);
 
+  readonly existingNames = signal<Set<string>>(new Set());
   profileName = `${this.data.name} (copy)`;
+
+  constructor() {
+    const destroyRef = inject(DestroyRef);
+    this.profileService
+      .getAll()
+      .pipe(takeUntilDestroyed(destroyRef))
+      .subscribe(profiles => {
+        this.existingNames.set(new Set(profiles.map(p => (p.name ?? '').toLowerCase())));
+      });
+  }
 
   duplicate(): void {
     const name = this.profileName.trim();
-    if (!name) return;
+    if (!name || this.hasNameConflict()) return;
 
     this.duplicating.set(true);
     this.profileService.duplicate(this.data.profileNo, name).subscribe({
@@ -63,5 +75,11 @@ export class ProfileDuplicateDialogComponent {
         this.dialogRef.close(profile);
       },
     });
+  }
+
+  /** Checked as the user types so the button turns off before the click. */
+  hasNameConflict(): boolean {
+    const name = this.profileName.trim().toLowerCase();
+    return name.length > 0 && this.existingNames().has(name);
   }
 }

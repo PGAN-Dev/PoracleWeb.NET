@@ -20,6 +20,7 @@ describe('LocationDialogComponent fields', () => {
   let component: LocationDialogComponent;
   let geocode: jest.Mock;
   let reverseGeocode: jest.Mock;
+  let setLocation: jest.Mock;
 
   const zoo: GeocodingResult = {
     name: 'Toledo Zoo',
@@ -35,6 +36,7 @@ describe('LocationDialogComponent fields', () => {
   function create(data: unknown = null): void {
     jest.useFakeTimers();
     geocode = jest.fn(() => of([zoo]));
+    setLocation = jest.fn(() => of({}));
     reverseGeocode = jest.fn(() => of({ addr: '', displayName: '2 Elsewhere Rd, Toledo' }));
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -44,7 +46,7 @@ describe('LocationDialogComponent fields', () => {
         provideTranslateService(),
         { provide: MAT_DIALOG_DATA, useValue: data },
         { provide: MatDialogRef, useValue: { close: jest.fn() } },
-        { provide: LocationService, useValue: { geocode, reverseGeocode } },
+        { provide: LocationService, useValue: { geocode, reverseGeocode, setLocation } },
         { provide: SettingsService, useValue: { isDisabled: () => false, siteSettings: signal({}) } },
       ],
     });
@@ -100,16 +102,71 @@ describe('LocationDialogComponent fields', () => {
       expect(component.longitudeError()).toBe('DIALOG.LOCATION_LONGITUDE_RANGE');
     });
 
-    it('accepts the edges of the range, and 0,0', () => {
+    it('accepts the edges of the range', () => {
       component.latitude = -90;
       component.longitude = 180;
       expect(component.isValid()).toBe(true);
-
-      component.latitude = 0;
-      component.longitude = 0;
-      expect(component.isValid()).toBe(true);
       expect(component.latitudeError()).toBeNull();
       expect(component.longitudeError()).toBeNull();
+      expect(component.originPinHint()).toBe(false);
+    });
+
+    // PoracleNG reads 0,0 as "no pin": saving it said "Location updated" and the pin was gone on reload.
+    it('refuses exactly 0,0, but says nothing on a fresh dialog with no pin', () => {
+      expect(component.latitude).toBe(0);
+      expect(component.longitude).toBe(0);
+
+      expect(component.isValid()).toBe(false);
+      expect(component.originPinHint()).toBe(false);
+    });
+
+    it('explains the refusal once the member types 0,0', () => {
+      component.latitude = 0;
+      component.longitude = 0;
+      component.onCoordsChanged();
+
+      expect(component.isValid()).toBe(false);
+      expect(component.originPinHint()).toBe(true);
+    });
+
+    it('explains the refusal when a pin or a result lands at 0,0', () => {
+      component.pickPoint(0, 0);
+      expect(component.originPinHint()).toBe(true);
+    });
+
+    it('explains the refusal when a search result sits at 0,0', () => {
+      component.selectResult({ ...zoo, latitude: 0, longitude: 0 });
+      expect(component.originPinHint()).toBe(true);
+    });
+
+    it('shows no hint for a stored real pin, and Save is available', () => {
+      create({ latitude: 37.5, longitude: -77.4 });
+
+      expect(component.originPinHint()).toBe(false);
+      expect(component.isValid()).toBe(true);
+    });
+
+    it('still accepts a point that is only near zero on one axis or both', () => {
+      for (const [lat, lon] of [
+        [0, 0.000001],
+        [-0.000001, 0],
+        [0.0001, -0.0001],
+        [51.5, 0],
+        [0, -77.45],
+      ]) {
+        component.latitude = lat;
+        component.longitude = lon;
+        expect(component.isValid()).toBe(true);
+        expect(component.originPinHint()).toBe(false);
+      }
+    });
+
+    it('does not save 0,0 even when called directly', () => {
+      component.latitude = 0;
+      component.longitude = 0;
+      component.save();
+
+      expect(setLocation).not.toHaveBeenCalled();
     });
 
     it('does not move the map or look anything up while a coordinate is empty', () => {

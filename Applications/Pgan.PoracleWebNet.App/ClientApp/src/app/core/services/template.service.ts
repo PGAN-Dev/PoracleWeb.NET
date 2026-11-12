@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, ReplaySubject, map } from 'rxjs';
 
+import { LinkSide } from '../models';
 import { AuthService } from './auth.service';
 import { ConfigService } from './config.service';
 
@@ -20,11 +21,15 @@ export class TemplateService {
   private loaded = false;
   private templates$ = new ReplaySubject<TemplateData>(1);
 
-  getTemplatesForType(alarmType: string): Observable<(string | number)[]> {
+  /**
+   * The template ids for an alarm type on one platform. `side` is the app the alarm is delivered to; left out,
+   * it is the signed-in person's own platform (the only side an unlinked person has).
+   */
+  getTemplatesForType(alarmType: string, side?: LinkSide | null): Observable<(string | number)[]> {
     return this.loadTemplates().pipe(
       map(data => {
         const userType = this.auth.user()?.type || 'discord:user';
-        const platform = userType.startsWith('telegram') ? 'telegram' : 'discord';
+        const platform = side ?? (userType.startsWith('telegram') ? 'telegram' : 'discord');
         const typeData = data[platform]?.[alarmType];
         if (!typeData) return [];
         const templates = new Set<string | number>();
