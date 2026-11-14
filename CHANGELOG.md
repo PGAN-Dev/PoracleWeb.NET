@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.2] - 2026-11-14
+
 ### Removed
 
 - **The Minior note on Pokemon alerts is gone.** From October 2026 Minior's IVs, CP and level were rolled again for each player who caught it, so scanners reported it without stats and the picker and edit dialog warned that IV, CP and level filters would not match. The game went back to one set of stats per spawn in November 2026 and Golbat reports them again (UnownHash/Golbat#438), so the note, its help paragraph and the `ivFilters` input on the Pokemon selector that existed only to show it are removed. A scanner still on a Golbat build from between #426 and #438 keeps reporting Minior without stats until it is updated.
@@ -1594,7 +1596,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rate limiting (per-IP) on auth endpoints
 - Docker deployment with Watchtower auto-updates
 
-[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.8.1...HEAD
+[Unreleased]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.8.2...HEAD
+[3.8.2]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.8.1...v3.8.2
 [3.8.1]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.8.0...v3.8.1
 [3.8.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.7.0...v3.8.0
 [3.7.0]: https://github.com/PGAN-Dev/PoracleWeb.NET/compare/v3.6.0...v3.7.0
