@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **The Minior note on Pokemon alerts is gone.** From October 2026 Minior's IVs, CP and level were rolled again for each player who caught it, so scanners reported it without stats and the picker and edit dialog warned that IV, CP and level filters would not match. The game went back to one set of stats per spawn in November 2026 and Golbat reports them again (UnownHash/Golbat#438), so the note, its help paragraph and the `ivFilters` input on the Pokemon selector that existed only to show it are removed. A scanner still on a Golbat build from between #426 and #438 keeps reporting Minior without stats until it is updated.
+
 ## [3.8.1] - 2026-11-12
 
 ### Fixed

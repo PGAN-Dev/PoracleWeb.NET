@@ -33,7 +33,6 @@ import { ANY_COSTUME, costumeHintKey } from '../../shared/utils/costumes';
 import { injectDeliverTo, moveEditMessage } from '../../shared/utils/deliver-to';
 import { mentionCapable } from '../../shared/utils/human-kind';
 import { minTimeLabel, minTimeOptions } from '../../shared/utils/min-time';
-import { MINIOR_POKEMON_ID } from '../../shared/utils/minior';
 
 @Component({
   imports: [
@@ -143,9 +142,6 @@ export class PokemonEditDialogComponent implements OnInit {
   readonly showCapPicker = computed(() => this.pvpCaps().length > 1);
 
   readonly showMention = this.auth.isImpersonating() && mentionCapable(this.auth.user()?.type);
-
-  /** Minior's stats are rerolled on catch, so its IV, CP and level filters never match. See `utils/minior.ts`. */
-  readonly showMiniorNote = this.data.pokemonId === MINIOR_POKEMON_ID;
 
   /** The radius as stored, which an edit may keep even outside the picker's range. */
   readonly storedRadiusKm = metresToKm(this.data.distance);

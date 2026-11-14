@@ -9,7 +9,7 @@
         <span class="tab-label">{{ 'NAV.POKEMON' | translate }}</span>
       </ng-template>
       <div class="tab-content">
-        <app-pokemon-selector [multi]="true" [ivFilters]="true" (selectionChange)="onPokemonSelected($event)" />
+        <app-pokemon-selector [multi]="true" (selectionChange)="onPokemonSelected($event)" />
         @if (selectedPokemonIds().length > 0) {
           <p class="selection-count">{{ 'POKEMON.SELECTION_COUNT' | translate: { count: selectedPokemonIds().length } }}</p>
         } @else {
