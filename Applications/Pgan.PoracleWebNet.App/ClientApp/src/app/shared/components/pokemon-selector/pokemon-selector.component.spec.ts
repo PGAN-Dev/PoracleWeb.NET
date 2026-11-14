@@ -15,10 +15,7 @@ describe('PokemonSelectorComponent', () => {
 
   let fixture: ComponentFixture<PokemonSelectorComponent>;
 
-  function setup(
-    ivFilters: boolean,
-    opts: { allowedIds?: number[]; initialIds?: number[]; multi?: boolean; pokemon?: PokemonEntry[]; types?: string[] } = {},
-  ) {
+  function setup(opts: { allowedIds?: number[]; initialIds?: number[]; multi?: boolean; pokemon?: PokemonEntry[]; types?: string[] } = {}) {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       providers: [
@@ -44,53 +41,17 @@ describe('PokemonSelectorComponent', () => {
 
     fixture = TestBed.createComponent(PokemonSelectorComponent);
     fixture.componentRef.setInput('multi', opts.multi ?? true);
-    fixture.componentRef.setInput('ivFilters', ivFilters);
     if (opts.initialIds) fixture.componentRef.setInput('initialIds', opts.initialIds);
     if (opts.allowedIds) fixture.componentRef.setInput('allowedIds', opts.allowedIds);
     fixture.detectChanges();
   }
-
-  function pick(...pokemon: PokemonEntry[]) {
-    fixture.componentInstance.selectedPokemon.set(pokemon);
-    fixture.detectChanges();
-  }
-
-  function note(): HTMLElement | null {
-    return (fixture.nativeElement as HTMLElement).querySelector('.minior-note');
-  }
-
-  it('says why IV filters will not match the moment Minior is picked for a Pokemon alert', () => {
-    setup(true);
-    expect(note()).toBeNull();
-
-    pick(MEOWTH, MINIOR);
-
-    expect(note()?.textContent).toContain('POKEMON.MINIOR_IV_NOTE');
-  });
-
-  it('drops the note again when Minior is removed', () => {
-    setup(true);
-    pick(MEOWTH, MINIOR);
-
-    fixture.componentInstance.removePokemon(MINIOR.id);
-    fixture.detectChanges();
-
-    expect(note()).toBeNull();
-  });
-
-  it('says nothing for other Pokemon', () => {
-    setup(true);
-    pick(MEOWTH);
-
-    expect(note()).toBeNull();
-  });
 
   describe('search first, bulk pickers behind "Add by type or generation"', () => {
     const root = () => fixture.nativeElement as HTMLElement;
     const toggle = () => root().querySelector<HTMLButtonElement>('.bulk-pickers-toggle');
 
     it('puts the search field before everything else and hides the generation chips', () => {
-      setup(true);
+      setup();
 
       const first = root().firstElementChild;
       expect(first?.tagName.toLowerCase()).toBe('mat-form-field');
@@ -100,7 +61,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('shows the generation chips once the expander is opened', () => {
-      setup(true);
+      setup();
 
       toggle()!.click();
       fixture.detectChanges();
@@ -110,7 +71,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('closing the pickers drops their filter, so the tile grid does not outlive the chips that made it', () => {
-      setup(true);
+      setup();
       toggle()!.click();
       fixture.detectChanges();
       root().querySelector<HTMLButtonElement>('.gen-chip')!.click();
@@ -125,7 +86,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('keeps what was picked from the tiles after the pickers close', () => {
-      setup(true);
+      setup();
       toggle()!.click();
       fixture.detectChanges();
       root().querySelector<HTMLButtonElement>('.gen-chip')!.click();
@@ -140,16 +101,9 @@ describe('PokemonSelectorComponent', () => {
     });
   });
 
-  it('says nothing in pickers whose alerts have no IV filters (raids, nests, quests)', () => {
-    setup(false);
-    pick(MINIOR);
-
-    expect(note()).toBeNull();
-  });
-
   describe('initialIds', () => {
     it('shows a stored single pick as chosen, without emitting it', () => {
-      setup(false, { initialIds: [52], multi: false });
+      setup({ initialIds: [52], multi: false });
       const emitted = jest.fn();
       fixture.componentInstance.selectionChange.subscribe(emitted);
 
@@ -159,7 +113,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('leaves the selector empty when no ids are given, as every existing caller does', () => {
-      setup(false);
+      setup();
       expect(fixture.componentInstance.selectedPokemon()).toEqual([]);
     });
   });
@@ -178,7 +132,7 @@ describe('PokemonSelectorComponent', () => {
     beforeEach(() => (emitted.length = 0));
 
     it('adds every species a generation shows in one click, and emits once', () => {
-      setup(false, { pokemon: dex(300) });
+      setup({ pokemon: dex(300) });
       showGen1();
 
       sut().selectAllShown();
@@ -189,7 +143,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('shows every tile a filter matches rather than the first 200, once the grid is opened out', () => {
-      setup(false, { pokemon: dex(400) });
+      setup({ pokemon: dex(400) });
       sut().toggleType('Water');
       fixture.detectChanges();
       expect(sut().shownCount()).toBe(400);
@@ -202,7 +156,7 @@ describe('PokemonSelectorComponent', () => {
 
     describe('a grid that folds instead of scrolling inside the scrolling dialog', () => {
       it('shows the first 24 tiles with Show all, and has no scroll box of its own', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         showGen1();
 
         expect(root().querySelectorAll('.pokemon-tile')).toHaveLength(24);
@@ -218,7 +172,7 @@ describe('PokemonSelectorComponent', () => {
       });
 
       it('still selects everything shown while folded', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         showGen1();
 
         root().querySelector<HTMLInputElement>('.select-all-shown input')!.click();
@@ -228,7 +182,7 @@ describe('PokemonSelectorComponent', () => {
       });
 
       it('folds again when the filter changes', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         showGen1();
         root().querySelector<HTMLButtonElement>('.tile-more')!.click();
         fixture.detectChanges();
@@ -240,7 +194,7 @@ describe('PokemonSelectorComponent', () => {
       });
 
       it('offers no Show all when everything fits', () => {
-        setup(false, { pokemon: dex(20) });
+        setup({ pokemon: dex(20) });
         showGen1();
 
         expect(root().querySelectorAll('.pokemon-tile')).toHaveLength(20);
@@ -249,14 +203,14 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('still caps the search dropdown, which is not a grid', () => {
-      setup(false, { pokemon: dex(400) });
+      setup({ pokemon: dex(400) });
       sut().searchText.set('mon');
 
       expect(sut().filteredPokemon().length).toBeLessThanOrEqual(200);
     });
 
     it('narrows to the search typed over the grid', () => {
-      setup(false, { pokemon: dex(300) });
+      setup({ pokemon: dex(300) });
       showGen1();
       sut().searchText.set('mon1');
 
@@ -267,7 +221,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('keeps what was picked before and only adds the rest', () => {
-      setup(false, { pokemon: dex(300) });
+      setup({ pokemon: dex(300) });
       sut().selectedPokemon.set([dex(300)[199]]);
       showGen1();
 
@@ -278,7 +232,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('removes only what the filter shows', () => {
-      setup(false, { pokemon: dex(300) });
+      setup({ pokemon: dex(300) });
       sut().selectedPokemon.set([dex(300)[199], dex(300)[0], dex(300)[1]]);
       showGen1();
 
@@ -293,7 +247,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('offers only the species the picker allows', () => {
-      setup(false, { allowedIds: [3, 6, 9], pokemon: dex(300) });
+      setup({ allowedIds: [3, 6, 9], pokemon: dex(300) });
       showGen1();
 
       sut().selectAllShown();
@@ -310,7 +264,7 @@ describe('PokemonSelectorComponent', () => {
       const status = () => root().querySelector('.shown-status')?.textContent?.trim() ?? '';
 
       it('is a checkbox labelled with how many the grid shows, never with a zero', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         showGen1();
 
         expect(box()?.checked).toBe(false);
@@ -320,7 +274,7 @@ describe('PokemonSelectorComponent', () => {
       });
 
       it('is mixed when some of the shown species are picked, and says how many', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         sut().selectedPokemon.set([dex(300)[0], dex(300)[1]]);
         showGen1();
 
@@ -329,7 +283,7 @@ describe('PokemonSelectorComponent', () => {
       });
 
       it('checks once every shown species is picked, and a second click clears only those', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         sut().selectedPokemon.set([dex(300)[199]]);
         showGen1();
 
@@ -349,7 +303,7 @@ describe('PokemonSelectorComponent', () => {
       });
 
       it('announces the count politely', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         showGen1();
 
         expect(root().querySelector('.shown-status')?.getAttribute('aria-live')).toBe('polite');
@@ -357,7 +311,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('collapses a long selection to 12 chips with Show all, and Clear all empties it', () => {
-      setup(false, { pokemon: dex(300) });
+      setup({ pokemon: dex(300) });
       showGen1();
       sut().selectAllShown();
       fixture.detectChanges();
@@ -374,7 +328,7 @@ describe('PokemonSelectorComponent', () => {
     });
 
     it('pastes numbers within what the picker allows, and says what it left out', () => {
-      setup(false, { allowedIds: [3, 6, 9], pokemon: dex(300) });
+      setup({ allowedIds: [3, 6, 9], pokemon: dex(300) });
       sut().toggleBulkMode();
       sut().bulkControl.setValue('1-10');
       sut().runBulkMatch();
@@ -393,7 +347,7 @@ describe('PokemonSelectorComponent', () => {
 
     describe('finding a picked species again from the search box', () => {
       it('lists a picked species in the dropdown, marked as picked', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         sut().selectedPokemon.set([dex(300)[24]]);
         sut().searchText.set('mon25');
 
@@ -405,7 +359,7 @@ describe('PokemonSelectorComponent', () => {
       });
 
       it('removes a picked species when it is chosen again, so one of a thousand can be dropped', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
         sut().selectionChange.subscribe(ids => emitted.push(ids));
         sut().selectedPokemon.set(dex(300));
 
@@ -417,7 +371,7 @@ describe('PokemonSelectorComponent', () => {
       });
 
       it('still adds a species that is not picked yet', () => {
-        setup(false, { pokemon: dex(300) });
+        setup({ pokemon: dex(300) });
 
         sut().onSelected({ option: { value: dex(300)[24] } } as never);
 
@@ -431,7 +385,7 @@ describe('PokemonSelectorComponent', () => {
     const TYPES = ['Bug', 'Fire', 'Water'];
 
     function open(): void {
-      setup(false, { types: TYPES });
+      setup({ types: TYPES });
       root().querySelector<HTMLButtonElement>('.bulk-pickers-toggle')!.click();
       fixture.detectChanges();
     }
