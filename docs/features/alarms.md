@@ -338,10 +338,6 @@ costume too new for either shows as its number rather than a name. See
     and 7 for `raid.costume` are in 5.4.0), so the select is always there and nothing asks the server
     first.
 
-### Minior
-
-Minior's IVs, CP and level are rerolled for each player when it's caught, so a scanner may report it without stats, and a rule that filters on them never fires. Picking Minior in the Pokemon picker shows a note saying so, and the edit dialog of a Minior alarm shows it too. Track Minior with IV, CP and level left open.
-
 ### Level range
 
 The default maximum level is **55** (not 40 or 50), matching Poracle's support for shadow/purified/best-buddy boosted levels.

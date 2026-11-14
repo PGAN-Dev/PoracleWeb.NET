@@ -69,10 +69,7 @@
     @if (pokemonControl()) {
       <div class="pokemon-pick" data-test="pokemon-pick" [attr.data-control]="currentAlarmType === 'quest' ? 'reward' : 'pokemonId'">
         @for (k of [selectorKey()]; track k) {
-          <app-pokemon-selector
-            [initialIds]="pokemonInitialIds()"
-            [ivFilters]="currentAlarmType === 'monster'"
-            (selectionChange)="onPokemonPicked($event)" />
+          <app-pokemon-selector [initialIds]="pokemonInitialIds()" (selectionChange)="onPokemonPicked($event)" />
         }
         @if (pokemonInitialIds().length > 0) {
           <button mat-button type="button" data-test="any-pokemon" (click)="resetPokemon()">

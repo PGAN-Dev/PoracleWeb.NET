@@ -13,7 +13,6 @@ import { I18nService } from '../../../core/services/i18n.service';
 import { IconService } from '../../../core/services/icon.service';
 import { MasterDataService, PokemonEntry } from '../../../core/services/masterdata.service';
 import { PokemonAvailabilityService } from '../../../core/services/pokemon-availability.service';
-import { includesMinior } from '../../utils/minior';
 import { BulkMatchResult, BulkMatchSuggestion, matchPokemonBulkText } from '../../utils/pokemon-bulk-match';
 
 /** Distinct ids for each picker's expander, since a quest dialog holds three selectors at once. */
@@ -173,12 +172,6 @@ export class PokemonSelectorComponent implements OnInit {
   initialIds = input<number[]>([]);
 
   /**
-   * Set by pickers whose alert has IV, CP and level filters (Pokemon alerts). Raid, nest and quest
-   * pickers leave it off: those alerts have no such filters, so the Minior note would mean nothing there.
-   */
-  ivFilters = input(false);
-
-  /**
    * The generation, type and live chips sit behind "Add by type or generation". Search is what almost
    * everyone opens the dialog for, and 27 chips used to stand between them and the field.
    */
@@ -189,9 +182,6 @@ export class PokemonSelectorComponent implements OnInit {
   searchControl = new FormControl('');
 
   selectionChange = output<number[]>();
-
-  /** Shown the moment Minior is picked for an alert with IV filters. See `utils/minior.ts`. */
-  showMiniorNote = computed(() => this.ivFilters() && includesMinior(this.selectedIds()));
 
   readonly shownSelectedCount = computed(() => this.shownCount() - this.shownUnselectedCount());
 
