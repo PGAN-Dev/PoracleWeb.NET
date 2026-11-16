@@ -44,6 +44,7 @@
             }
           </mat-form-field>
         </div>
+        <p class="clean-hint">{{ 'POKEMON.MIN_IV_HINT' | translate }}</p>
         <mat-slide-toggle [formControl]="filtersForm.controls.includeUnscanned">
           {{ 'POKEMON.INCLUDE_UNSCANNED' | translate }}
         </mat-slide-toggle>
@@ -143,6 +144,9 @@
               </mat-select>
             </mat-form-field>
           </div>
+          @if (isMinior()) {
+            <p class="clean-hint">{{ 'POKEMON.MINIOR_FORM_HINT' | translate }}</p>
+          }
         }
 
         <h4>{{ 'POKEMON.FILTER_COSTUME' | translate }}</h4>

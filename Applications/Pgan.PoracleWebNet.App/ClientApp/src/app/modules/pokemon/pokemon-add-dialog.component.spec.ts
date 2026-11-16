@@ -176,6 +176,15 @@ describe('PokemonAddDialogComponent', () => {
       expect(sentMinIv()).toBe(90);
     });
 
+    it('flags only a lone Minior for the core-color note', () => {
+      component.selectedPokemonIds.set([774]);
+      expect(component.isMinior()).toBe(true);
+      component.selectedPokemonIds.set([774, MEOWTH]);
+      expect(component.isMinior()).toBe(false);
+      component.selectedPokemonIds.set([MEOWTH]);
+      expect(component.isMinior()).toBe(false);
+    });
+
     it('saves min IV -1 and disables the Min IV box while it is on', () => {
       component.ngOnInit();
       component.selectedPokemonIds.set([MEOWTH]);

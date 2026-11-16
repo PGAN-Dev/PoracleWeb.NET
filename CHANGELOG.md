@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The Pokemon alert dialogs explain derived IVs.** Golbat now fills in IVs from the encounter id the first time it sees a spawn, so nearly every spawn carries IVs before anyone encounters it. The switch that used to read "Include Pokemon without stats" now reads "Alert at first sight, before IVs are confirmed": on saves Min IV -1 and alerts on every spawn of the species, derived IVs included; off with Min IV 0 waits until the IVs were observed in an encounter. A new line under Min IV says that a value above 0 also matches derived IVs, earlier but unverified. The saved values are unchanged, so no alarm is touched. When the alert is for Minior, the Form picker notes that green and yellow cores are derived at first sight, Meteor is the form shown in game, and blue is never derived, so a blue rule never fires. All eleven languages are updated.
+
 ## [3.8.2] - 2026-11-14
 
 ### Removed

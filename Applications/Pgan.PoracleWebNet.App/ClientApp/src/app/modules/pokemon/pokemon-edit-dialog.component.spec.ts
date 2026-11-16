@@ -84,6 +84,13 @@ describe('PokemonEditDialogComponent', () => {
     expect(sent().minIv).toBe(-1);
   });
 
+  it('only flags Minior for the core-color note', () => {
+    setup({ pokemonId: 774 });
+    expect(component.isMinior).toBe(true);
+    setup({ pokemonId: 52 });
+    expect(component.isMinior).toBe(false);
+  });
+
   it('turning the switch off saves the Min IV box again', () => {
     setup({ minIv: -1 });
     component.ngOnInit();

@@ -15,7 +15,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { syncUnscanned } from './include-unscanned';
+import { MINIOR_ID, syncUnscanned } from './include-unscanned';
 import { MonsterCreate, LinkSide } from '../../core/models';
 import { AlertDefaultsService } from '../../core/services/alert-defaults.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -86,9 +86,9 @@ export class PokemonAddDialogComponent implements OnInit {
 
   /** Tracks whether the user has manually changed the cap since the default was applied. */
   readonly capTouched = signal(false);
+
   readonly deliver = injectDeliverTo();
   readonly dialogRef = inject(MatDialogRef<PokemonAddDialogComponent>);
-
   /** Whether to show the edit-in-place toggle at all -- see MonsterService.editSupported. */
   readonly editSupported = this.monsterService.editSupported;
 
@@ -119,6 +119,9 @@ export class PokemonAddDialogComponent implements OnInit {
     size: [-1],
     sta: [0, [Validators.min(0), Validators.max(15)]],
   });
+
+  /** Minior (774) gets a note on which core colors Golbat derives; see POKEMON.MINIOR_FORM_HINT. */
+  readonly isMinior = computed(() => this.selectedPokemonIds().length === 1 && this.selectedPokemonIds()[0] === MINIOR_ID);
 
   readonly isWebhook = inject(AuthService).isImpersonating();
 

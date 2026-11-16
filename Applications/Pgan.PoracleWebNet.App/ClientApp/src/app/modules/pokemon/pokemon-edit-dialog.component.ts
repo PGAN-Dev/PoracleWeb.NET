@@ -14,7 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { syncUnscanned } from './include-unscanned';
+import { MINIOR_ID, syncUnscanned } from './include-unscanned';
 import { Monster, MonsterUpdate, LinkSide } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -126,6 +126,9 @@ export class PokemonEditDialogComponent implements OnInit {
     sta: [this.data.sta],
     template: [this.data.template ?? ''],
   });
+
+  /** Minior (774) gets a note on which core colors Golbat derives; see POKEMON.MINIOR_FORM_HINT. */
+  readonly isMinior = this.data.pokemonId === MINIOR_ID;
 
   pokemonName = this.data.pokemonId === 0 ? this.i18n.instant('POKEMON.ALL_POKEMON') : this.masterData.getPokemonName(this.data.pokemonId);
 

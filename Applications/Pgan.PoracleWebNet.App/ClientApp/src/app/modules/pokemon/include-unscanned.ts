@@ -1,12 +1,16 @@
 import { AbstractControl } from '@angular/forms';
 
+/** Minior's Pokedex number. Its dialogs explain which core colors Golbat derives. */
+export const MINIOR_ID = 774;
+
 /**
- * Keeps the "include Pokemon without stats" switch and the Min IV box consistent.
+ * Keeps the "alert at first sight" switch and the Min IV box consistent.
  *
- * A Pokemon nobody has encountered has no IV, which Poracle treats as -1 and drops when it is below the
- * rule's min_iv. Saving min_iv -1 is how a rule asks for those spawns, and it also lets every
- * encountered IV through, so while the switch is on the Min IV box is disabled rather than silently
- * ignored.
+ * Golbat derives IVs from the encounter id, so most spawns carry IVs the moment they appear. Poracle
+ * treats min_iv -1 as "match everything, derived IVs included, at first sight"; min_iv 0 matches only
+ * spawns whose IVs were observed in an encounter; above 0 also matches derived IVs. The saved values are
+ * unchanged, only their meaning moved. While the switch is on the Min IV box is disabled rather than
+ * silently ignored. (The control keeps its old name, includeUnscanned, to avoid churning saved state.)
  */
 export function syncUnscanned(controls: {
   includeUnscanned: AbstractControl<boolean | null>;
