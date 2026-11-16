@@ -29,7 +29,7 @@ COPY . .
 RUN dotnet publish Applications/Pgan.PoracleWebNet.Api/Pgan.PoracleWebNet.Api.csproj -c Release -o /app/publish
 
 # Stage 3: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime
 WORKDIR /app
 # curl is for the compose healthcheck -- the aspnet:10.0 base (Ubuntu 24.04)
 # ships neither curl nor wget, so the probe fails with "curl: not found" and
