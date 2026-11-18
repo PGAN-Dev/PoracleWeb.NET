@@ -11,7 +11,7 @@ COPY Applications/Pgan.PoracleWebNet.App/ClientApp/ ./
 RUN npx ng build --configuration production
 
 # Stage 2: Build .NET API
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS dotnet-build
 WORKDIR /src
 COPY Pgan.PoracleWebNet.slnx ./
 COPY Core/Pgan.PoracleWebNet.Core.Abstractions/Pgan.PoracleWebNet.Core.Abstractions.csproj Core/Pgan.PoracleWebNet.Core.Abstractions/
